@@ -19,9 +19,13 @@ if "organized" not in sys.modules:
     organized_pkg.__path__ = [current_dir]
     sys.modules["organized"] = organized_pkg
 
-parent_dir = os.path.dirname(current_dir)
-if parent_dir not in sys.path:
-    sys.path.insert(0, parent_dir)
+    sys.modules["organized"] = organized_pkg
+
+# Remove parent_dir from sys.path if it was added solely for the previous import logic
+# (Though keeping it valid for imports if strictly needed, but download must use current_dir)
+# parent_dir = os.path.dirname(current_dir)
+# if parent_dir not in sys.path:
+#     sys.path.insert(0, parent_dir)
 
 from organized.config import settings
 from organized.scripts import clip_inputs, download_data
@@ -38,7 +42,8 @@ st.sidebar.subheader("📦 Datos Base")
 if st.sidebar.button("Descargar/Actualizar Datos Base"):
     with st.spinner("Descargando datos del repositorio (esto puede tardar)..."):
         try:
-            download_data.run(base_dir=parent_dir)
+            # FIX: Use current_dir (Project Root) not parent_dir (Desktop)
+            download_data.run(base_dir=current_dir)
             st.sidebar.success("✅ Datos descargados/verificados.")
         except Exception as e:
             st.sidebar.error(f"Error en descarga: {e}")
