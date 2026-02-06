@@ -36,7 +36,7 @@ where conda >nul 2>&1
 if %errorlevel% equ 0 (
     echo [INFO] Conda detectado. Usando metodo robusto (recomendado).
     
-    :: Determine if using mamba (usually faster/better in Miniforge)
+    REM Determine if using mamba (usually faster/better in Miniforge)
     set "CONDA_EXE=conda"
     where mamba >nul 2>&1
     if !errorlevel! equ 0 set "CONDA_EXE=mamba"
@@ -45,12 +45,12 @@ if %errorlevel% equ 0 (
 
     if not exist "%VENV_NAME%" (
         echo [INFO] Creando entorno Conda local...
-        :: Create local env using --prefix (install into folder "env_climate_app" instead of global envs)
+        REM Create local env using --prefix (install into folder "env_climate_app" instead of global envs)
         call !CONDA_EXE! create --prefix "./%VENV_NAME%" python=3.11 -y
         if errorlevel 1 goto error_install
 
         echo [INFO] Instalando librerias pesadas via Conda-Forge...
-        :: Install heavy geolibs via conda (no compilation needed)
+        REM Install heavy geolibs via conda (no compilation needed)
         call !CONDA_EXE! install --prefix "./%VENV_NAME%" -c conda-forge geopandas rioxarray xarray netCDF4 matplotlib scipy numpy python-docx -y
         if errorlevel 1 goto error_install
         
@@ -59,7 +59,7 @@ if %errorlevel% equ 0 (
     ) else (
         echo [INFO] Entorno Conda encontrado en ./%VENV_NAME%
         echo [INFO] Verificando/Actualizando via Pip...
-        :: We use the python executable directly from the local env
+        REM We use the python executable directly from the local env
         call "%VENV_NAME%\python.exe" -m pip install -r requirements.txt
     )
 
@@ -113,13 +113,13 @@ echo Si el navegador no se abre, vaya a: http://localhost:8501
 echo Presione Ctrl+C para detener.
 echo.
 
-:: FIX: Clear system environment variables that might conflict (PostgreSQL/PostGIS)
+REM FIX: Clear system environment variables that might conflict (PostgreSQL/PostGIS)
 set PROJ_LIB=
 set GDAL_DATA=
 
-:: Launch Streamlit
+REM Launch Streamlit
 if exist "%VENV_NAME%\python.exe" (
-    :: Conda/Venv local path style
+    REM Conda/Venv local path style
     "%VENV_NAME%\python.exe" -m streamlit run app.py
 ) else (
     :: Fallback to activated path
