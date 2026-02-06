@@ -66,6 +66,10 @@ echo Si el navegador no se abre, vaya a: http://localhost:8501
 echo Presione Ctrl+C para detener.
 echo.
 
+:: FIX: Clear system environment variables that might conflict (PostgreSQL/PostGIS)
+set PROJ_LIB=
+set GDAL_DATA=
+
 python -m streamlit run app.py
 
 echo.
