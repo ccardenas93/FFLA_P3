@@ -87,12 +87,23 @@ def process_region(region_name, shapefile_path, source_dir=None):
     
     count = 0
     
+    # Silence GDAL warnings if possible
+    if "GDAL_DATA" not in os.environ:
+        try:
+            import fiona
+            os.environ["GDAL_DATA"] = fiona.datadir
+        except:
+            pass
+
     # Define search paths for source data
+    # We look deep because users might download to 'inputs', 'inputs/FODESNA', or just root.
     search_dirs = [
         source_dir,
-        os.path.join(source_dir, "FDAT"),
+        os.path.join(source_dir, "inputs"),
+        os.path.join(source_dir, "inputs", "FODESNA"),
+        os.path.join(source_dir, "inputs", "FDAT"),
         os.path.join(source_dir, "FODESNA"),
-        os.path.join(source_dir, "inputs") # Sometimes placed here
+        os.path.join(source_dir, "FDAT"),
     ]
 
     for dom in settings.DOMAINS:
