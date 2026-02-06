@@ -12,7 +12,11 @@ Esta carpeta contiene todo lo necesario para ejecutar el análisis de cambio cli
 
 ## 🚀 ¿Cómo empezar?
 
-1.  Asegúrate de tener **Python instalado**.
+1.  **Instalar Python (Miniforge Recomendado)**:
+    *   Descarga el instalador de **Miniforge3** (Windows x86_64) desde: [https://github.com/conda-forge/miniforge](https://github.com/conda-forge/miniforge#miniforge3)
+    *   ⚠️ **MUY IMPORTANTE**: Durante la instalación, marca las casillas:
+        *   ✅ **"Add Miniforge3 to my PATH environment variable"**
+        *   ✅ "Register Miniforge3 as my default Python 3.12"
 2.  Si estás en **Windows**, ejecuta `start_app.bat`.
 3.  Si estás en **Mac**, ejecuta `start_app.command`.
 4.  Espera unos minutos la primera vez mientras se configuran las librerías.
