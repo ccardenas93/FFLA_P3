@@ -20,6 +20,25 @@ FILES_FDAT = {
 # But assuming the dictionary above was there for a reason, we keep it. 
 # UPDATE: User asked for FDAT specifically.
 
+FILES_FODESNA = {
+    "FODESNA/historical_ecuador": [
+        "pr_historical_ecuador.nc", "tas_historical_ecuador.nc", 
+        "tasmin_historical_ecuador.nc", "tasmax_historical_ecuador.nc"
+    ],
+    "FODESNA/ssp126_ecuador": [
+        "pr_ssp126_ecuador.nc", "tas_ssp126_ecuador.nc", 
+        "tasmin_ssp126_ecuador.nc", "tasmax_ssp126_ecuador.nc"
+    ],
+    "FODESNA/ssp370_ecuador": [
+        "pr_ssp370_ecuador.nc", "tas_ssp370_ecuador.nc", 
+        "tasmin_ssp370_ecuador.nc", "tasmax_ssp370_ecuador.nc"
+    ],
+    "FODESNA/ssp585_ecuador": [
+        "pr_ssp585_ecuador.nc", "tas_ssp585_ecuador.nc", 
+        "tasmin_ssp585_ecuador.nc", "tasmax_ssp585_ecuador.nc"
+    ]
+}
+
 def download_file(url, dest_path):
     print(f"Downloading {url}...")
     try:
