@@ -1,0 +1,21 @@
+# Entorno Virtual
+env_climate_app/
+venv/
+.env
+
+# Archivos de Sistema
+.DS_Store
+Thumbs.db
+__pycache__/
+*.pyc
+
+# Datos Climáticos Descargados (Se descargan desde la App)
+inputs/FDAT/
+inputs/FODESNA/
+inputs/Mi_Area/
+inputs/testfinal/
+
+# Salidas Generadas (Cada usuario genera las suyas)
+outputs/
+reports/
+testfinal/

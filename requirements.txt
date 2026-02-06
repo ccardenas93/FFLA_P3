@@ -1,0 +1,15 @@
+streamlit
+numpy<2.0.0
+geopandas
+rioxarray
+xarray
+shapely
+netCDF4
+matplotlib
+folium
+streamlit-folium
+fiona
+pyproj
+python-docx
+seaborn
+scipy
