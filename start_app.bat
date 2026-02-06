@@ -1,50 +1,73 @@
 @echo off
-setlocal
+setlocal EnableExtensions EnableDelayedExpansion
+
+title Climate App Launcher
+cd /d "%~dp0"
 
 echo ==========================================
 echo    Iniciando Web App de Analisis Climatico
 echo ==========================================
+echo Carpeta: %CD%
+echo.
 
-:: Nombre del entorno virtual
 set "VENV_NAME=env_climate_app"
 
-:: Verificar si existe Python
 python --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [ERROR] Python no encontrado. Por favor instale Python 3.10+ y agreguelo al PATH.
+if errorlevel 1 (
+    echo [ERROR] Python no encontrado. Instale Python 3.10+ y agreguelo al PATH.
     pause
     exit /b 1
 )
 
-:: Verificar/Crear entorno virtual
+if not exist "requirements.txt" (
+  echo [ERROR] No encuentro requirements.txt en: %CD%
+  pause
+  exit /b 1
+)
+
+if not exist "app.py" (
+  echo [ERROR] No encuentro app.py en: %CD%
+  pause
+  exit /b 1
+)
+
 if not exist "%VENV_NAME%" (
-    echo [INFO] Configurando entorno por primera vez (esto puede tardar)...
-    python -m venv %VENV_NAME%
-    
-    :: Activar y actualizar pip
-    call %VENV_NAME%\Scripts\activate
+    echo [INFO] Configurando entorno por primera vez...
+    python -m venv "%VENV_NAME%"
+    if errorlevel 1 (
+      echo [ERROR] Fallo creando el entorno virtual.
+      pause
+      exit /b 1
+    )
+
+    call "%VENV_NAME%\Scripts\activate.bat"
     python -m pip install --upgrade pip
-    
-    :: Instalar dependencias
     echo [INFO] Instalando librerias necesarias...
     pip install -r requirements.txt
-    
-    if %errorlevel% neq 0 (
-        echo [ERROR] Fallo la instalacion de dependencias. Verifique su conexion.
+    if errorlevel 1 (
+        echo [ERROR] Fallo la instalacion de dependencias.
         pause
         exit /b 1
     )
 ) else (
     echo [INFO] Entorno encontrado. Verificando dependencias...
-    call %VENV_NAME%\Scripts\activate
+    call "%VENV_NAME%\Scripts\activate.bat"
     pip install -r requirements.txt
+    if errorlevel 1 (
+        echo [ERROR] Fallo instalando/verificando dependencias.
+        pause
+        exit /b 1
+    )
 )
 
-:: Ejecutar la app
+echo.
 echo [INFO] Lanzando aplicacion...
 echo Si el navegador no se abre, vaya a: http://localhost:8501
 echo Presione Ctrl+C para detener.
+echo.
 
-streamlit run app.py
+python -m streamlit run app.py
 
+echo.
+echo [INFO] Streamlit termino o se cerro.
 pause
