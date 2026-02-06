@@ -1,26 +1,37 @@
-# 🌍 Aplicación de Análisis Climático (Taller)
+# Aplicación de Análisis Climático - FFLA
 
-Esta carpeta contiene todo lo necesario para ejecutar el análisis de cambio climático en tu computador.
+Este repositorio contiene las herramientas necesarias para la ejecución del taller de análisis de cambio climático. Asegúrese de seguir las instrucciones detalladas a continuación para garantizar el correcto funcionamiento de la aplicación en su equipo.
 
-## 📂 ¿Qué contiene esta carpeta?
+## Estructura del Repositorio
 
-*   **`start_app.bat`**: 🖱️ **¡Dale doble clic aquí si usas Windows!** Instala y abre todo automáticamente.
-*   **`start_app.command`**: 🍎 **¡Dale doble clic aquí si usas Mac!**
-*   **`app.py`**: El código de la aplicación.
-*   **`config/`, `scripts/`**: Archivos internos de configuración y cálculo.
-*   **`inputs/`**: Carpeta donde se guardarán los datos climáticos y tus mapas.
+*   **`start_app.bat`**: Script de inicialización automatizada para sistemas **Windows**.
+*   **`start_app.command`**: Script de inicialización automatizada para sistemas **macOS**.
+*   **`app.py`**: Código fuente principal de la aplicación.
+*   **`config/`, `scripts/`**: Módulos de configuración y lógica de procesamiento.
+*   **`inputs/`**: Directorio destinado al almacenamiento de datos climáticos y cartografía base.
 
-## 🚀 ¿Cómo empezar?
+## Instrucciones de Inicio
 
-1.  **Instalar Python (Miniforge Recomendado)**:
-    *   Descarga el instalador de **Miniforge3** (Windows x86_64) desde: [https://github.com/conda-forge/miniforge](https://github.com/conda-forge/miniforge#miniforge3)
-    *   ⚠️ **MUY IMPORTANTE**: Durante la instalación, marca las casillas:
-        *   ✅ **"Add Miniforge3 to my PATH environment variable"**
-        *   ✅ "Register Miniforge3 as my default Python 3.12"
-2.  Si estás en **Windows**, ejecuta `start_app.bat`.
-3.  Si estás en **Mac**, ejecuta `start_app.command`.
-4.  Espera unos minutos la primera vez mientras se configuran las librerías.
-5.  Se abrirá tu navegador con la aplicación.
+### 1. Prerrequisitos del Sistema
 
-## ⚠️ Nota Importante
-No necesitas instalar nada manualmente (ni `pip`, ni librerías). El script se encarga de crear un entorno aislado (`env_climate_app`) para no interferir con tu sistema.
+Es necesario contar con un intérprete de Python instalado y correctamente configurado en las variables de entorno del sistema.
+
+**Para usuarios de Windows:**
+Se recomienda encarecidamente la instalación de **Miniforge** para gestionar las dependencias geospaciales de manera robusta.
+
+1.  Descargue el instalador **Miniforge3-Windows-x86_64.exe** desde el repositorio oficial: [https://github.com/conda-forge/miniforge](https://github.com/conda-forge/miniforge#miniforge3)
+2.  **IMPORTANTE**: Durante el proceso de instalación, es obligatorio **marcar** las siguientes casillas para asegurar que el sistema reconozca los comandos:
+    *   [x] *Add Miniforge3 to my PATH environment variable* (Es posible que el instalador muestre una advertencia en rojo; ignórela y proceda a marcar la casilla).
+    *   [x] *Register Miniforge3 as my default Python 3.12*
+
+### 2. Ejecución de la Aplicación
+
+Una vez configurados los prerrequisitos:
+
+1.  **En Windows**: Ejecute el archivo `start_app.bat` haciendo doble clic sobre él.
+2.  **En macOS**: Ejecute el archivo `start_app.command`.
+
+El sistema iniciará un proceso automático para configurar un entorno virtual aislado (`env_climate_app`) e instalar las librerías necesarias. Este proceso puede tomar varios minutos la primera vez. Una vez finalizado, la aplicación se desplegará automáticamente en su navegador web predeterminado.
+
+## Nota Técnica
+No se requiere la instalación manual de librerías mediante `pip`. Los scripts proporcionados gestionan la creación del entorno de ejecución de forma autónoma para evitar conflictos con otras configuraciones del sistema.
