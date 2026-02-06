@@ -10,10 +10,22 @@ BASE_URL = "https://github.com/ccardenas93/FFLA/raw/main"
 # derived from the user's listing.
 # Renaming for clarity and ensuring we download everything
 FILES_FDAT = {
-    "FDAT/historical_ecuador": ["P_historical_ecuador.nc", "T_historical_ecuador.nc"],
-    "FDAT/ssp126_ecuador": ["P_ssp126_ecuador.nc", "T_ssp126_ecuador.nc"],
-    "FDAT/ssp370_ecuador": ["P_ssp370_ecuador.nc", "T_ssp370_ecuador.nc"],
-    "FDAT/ssp585_ecuador": ["P_ssp585_ecuador.nc", "T_ssp585_ecuador.nc"],
+    "FDAT/historical_ecuador": [
+        "pr_historical_ecuador.nc", "tas_historical_ecuador.nc", 
+        "tasmin_historical_ecuador.nc", "tasmax_historical_ecuador.nc"
+    ],
+    "FDAT/ssp126_ecuador": [
+        "pr_ssp126_ecuador.nc", "tas_ssp126_ecuador.nc", 
+        "tasmin_ssp126_ecuador.nc", "tasmax_ssp126_ecuador.nc"
+    ],
+    "FDAT/ssp370_ecuador": [
+        "pr_ssp370_ecuador.nc", "tas_ssp370_ecuador.nc", 
+        "tasmin_ssp370_ecuador.nc", "tasmax_ssp370_ecuador.nc"
+    ],
+    "FDAT/ssp585_ecuador": [
+        "pr_ssp585_ecuador.nc", "tas_ssp585_ecuador.nc", 
+        "tasmin_ssp585_ecuador.nc", "tasmax_ssp585_ecuador.nc"
+    ],
 }
 # Note: FDAT usually has P_ and T_ prefixes, differing from FODESNA's pr_ / tas_. 
 # If the repo actually has standard names for FDAT, we should use those.
