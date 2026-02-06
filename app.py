@@ -10,6 +10,15 @@ from streamlit_folium import st_folium
 
 # Add PARENT dir to path to import 'organized' package
 current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# PATCH: Make "organized" importable even if folder is named "FFLA_P3-master"
+import types
+if "organized" not in sys.modules:
+    # Use current directory (where app.py is) as the "organized" package
+    organized_pkg = types.ModuleType("organized")
+    organized_pkg.__path__ = [current_dir]
+    sys.modules["organized"] = organized_pkg
+
 parent_dir = os.path.dirname(current_dir)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
