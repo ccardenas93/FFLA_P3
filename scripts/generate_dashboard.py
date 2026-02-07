@@ -929,7 +929,7 @@ def generate_html_content():
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(html)
     
-    print(f"✅ Super Dashboard generado: {output_path}")
+    print(f"✅ Dashboard generado: {output_path}")
 
 
 def export_static_site():
