@@ -73,7 +73,7 @@ def clip_nc_file(nc_path, shapefile_path, out_path_base, var_name=None):
 def process_region(region_name, shapefile_path, source_dir=None, data_source=None):
     """
     Creates input files for a new region by clipping national data.
-    data_source: 'FODESNA', 'FDAT', or None (search everything)
+    data_source: 'FODESNA', 'FMPLPT', or None (search everything)
     """
     if source_dir is None:
         source_dir = settings.BASE_DIR
@@ -100,10 +100,10 @@ def process_region(region_name, shapefile_path, source_dir=None, data_source=Non
             os.path.join(source_dir, "FODESNA"),
             os.path.join(source_dir, "inputs"), # Fallback if user put files directly in inputs but meant FODESNA? No, better be strict.
         ]
-    elif data_source == "FDAT":
+    elif data_source == "FMPLPT":
         search_dirs = [
-            os.path.join(source_dir, "inputs", "FDAT"),
-            os.path.join(source_dir, "FDAT"),
+            os.path.join(source_dir, "inputs", "FMPLPT"),
+            os.path.join(source_dir, "FMPLPT"),
         ]
     else:
         # Default: Search everywhere (Legacy behavior)
@@ -111,9 +111,9 @@ def process_region(region_name, shapefile_path, source_dir=None, data_source=Non
             source_dir,
             os.path.join(source_dir, "inputs"),
             os.path.join(source_dir, "inputs", "FODESNA"),
-            os.path.join(source_dir, "inputs", "FDAT"),
+            os.path.join(source_dir, "inputs", "FMPLPT"),
             os.path.join(source_dir, "FODESNA"),
-            os.path.join(source_dir, "FDAT"),
+            os.path.join(source_dir, "FMPLPT"),
         ]
 
     for dom in settings.DOMAINS:

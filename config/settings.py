@@ -14,9 +14,9 @@ DERIVED_DIR = os.path.join(DATA_DIR, "derived")
 # Regions configuration
 # Paths now point to the 'inputs' directory inside 'organized'
 REGIONS = {
-    "FDAT": {
-        "name": "Tungurahua",
-        "path": os.path.join(INPUTS_DIR, "FDAT"),
+    "FMPLPT": {
+        "name": "FMPLPT (Tungurahua)",
+        "path": os.path.join(INPUTS_DIR, "FMPLPT"),
         "shapefile": os.path.join(INPUTS_DIR, "ne_countries", "Tungurahua4326.shp")
     },
     "FODESNA": {
