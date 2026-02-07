@@ -110,36 +110,30 @@ if mode == "Nueva Área de Interés (Subir SHP/GPKG)":
                     with col2:
                         custom_out = st.text_input("Carpeta de Resultados (Opcional)", placeholder="Dejar vacío para usar default")
                     
+                    st.write("---")
+                    data_source_opt = st.radio(
+                        "📡 Fuente de Datos Climáticos",
+                        ["FODESNA", "FDAT"],
+                        help="Seleccione el conjunto de datos a utilizar. FODESNA es recomendado para Ecuador continental. FDAT para Galápagos."
+                    )
+                    st.write("---")
+                    
                     if st.button("🚀 Ejecutar Análisis", type="primary"):
                         progress_bar = st.progress(0)
                         status_text = st.empty()
                         
                         # 1. Clip Inputs
-                        status_text.text("Recortando datos climáticos... (Esto puede tardar unos minutos)")
-                        # Pass settings.BASE_DIR explicitly so it searches inside inputs/ correctly
-                        # clip_inputs logic searches in source_dir/FODESNA etc.
-                        # We want it to look at organized/inputs/FODESNA if we downloaded there.
-                        # So let's pass os.path.join(settings.BASE_DIR, 'inputs') as source ??
-                        # No, clip_inputs searches `source_dir`, `source_dir/inputs`, `source_dir/FODESNA`...
-                        # If we downloaded to `organized/inputs/FODESNA`, then `organized/inputs` is the "root" of that structure?
-                        # ACTUALLY: The download script puts it in `organized/inputs/FODESNA`.
-                        # Clip inputs search logic:
-                        # search_dirs = [source, source/FDAT, source/FODESNA, source/inputs]
-                        # If we pass source=settings.BASE_DIR (organized/), it checks:
-                        # 1. organized/FODESNA -> NO (it's in inputs)
-                        # 2. organized/inputs -> YES (contains FODESNA?) 
-                        # Wait, if `organized/inputs/FODESNA/historical_ecuador` exists.
-                        # And we look for domain `historical_ecuador`.
-                        # It checks `organized/inputs/historical_ecuador` -> No.
-                        # It checks `organized/inputs/FODESNA/historical_ecuador`? 
-                        # Only if we explicitly add that path to search logic in clip_inputs.
+                        status_text.text(f"Recortando datos climáticos de {data_source_opt}... (Esto puede tardar unos minutos)")
                         
-                        # Let's fix searching logic by passing the inputs dir as source, OR updating clip_inputs to search defaults.
-                        # It's better to update clip_inputs to search recursively or specifically in inputs/FODESNA.
-                        # For now, let's pass the inputs path where we know data is.
-                        search_source = os.path.join(settings.BASE_DIR, "inputs")
-                        
-                        region_inputs_dir = clip_inputs.process_region(region_name, shp_path, source_dir=search_source)
+                        # Pass settings.BASE_DIR as source, but let clip_inputs handle the subfolder logic based on data_source_opt
+                        # We pass the root 'organized' folder (settings.BASE_DIR)
+                        # clip_inputs knows to look in organized/inputs/FODESNA etc.
+                        region_inputs_dir = clip_inputs.process_region(
+                            region_name, 
+                            shp_path, 
+                            source_dir=settings.BASE_DIR, 
+                            data_source=data_source_opt
+                        )
                         progress_bar.progress(30)
                         
                         # 2. Register Region
