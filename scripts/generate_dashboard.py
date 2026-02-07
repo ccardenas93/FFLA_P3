@@ -540,8 +540,8 @@ def generate_html_content():
     first = True
     for r_code in region_keys:
         active_cls = " active" if first else ""
-        # Use mapped display name instead of folder name
-        r_display = DISPLAY_NAMES.get(r_code, settings.REGIONS[r_code]['name'])
+        # Use mapped display        # Try to match to known display names
+        r_display = REGION_DISPLAY_NAMES.get(r_code, settings.REGIONS[r_code]['name'])
         
         html += f"""            <button id="btn-{r_code}" class="region-btn{active_cls}" onclick="switchRegion('{r_code}')">{r_display}</button>\n"""
         first = False
