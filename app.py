@@ -114,7 +114,7 @@ if mode == "Nueva Área de Interés (Subir SHP/GPKG)":
                     data_source_opt = st.radio(
                         "📡 Fuente de Datos Climáticos",
                         ["FODESNA", "FMPLPT"],
-                        help="Seleccione el conjunto de datos a utilizar. FODESNA es recomendado para Ecuador continental. FMPLPT para Tungurahua (Fondo de Manejo de Páramos)."
+                        help="Seleccione el conjunto de datos a utilizar. FODESNA para la provincia de Napo. FMPLPT para la provincia de Tungurahua."
                     )
                     st.write("---")
                     
