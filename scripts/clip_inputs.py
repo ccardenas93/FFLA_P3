@@ -70,20 +70,18 @@ def clip_nc_file(nc_path, shapefile_path, out_path_base, var_name=None):
         print(f"  ❌ Error clipping {os.path.basename(nc_path)}: {e}")
         return False
 
-def process_region(region_name, shapefile_path, source_dir=None):
+def process_region(region_name, shapefile_path, source_dir=None, data_source=None):
     """
     Creates input files for a new region by clipping national data.
-    Searches in:
-    1. source_dir/<domain>
-    2. source_dir/FDAT/<domain>
-    3. source_dir/FODESNA/<domain>
+    data_source: 'FODESNA', 'FDAT', or None (search everything)
     """
     if source_dir is None:
         source_dir = settings.BASE_DIR
         
     output_base = os.path.join(settings.INPUTS_DIR, region_name)
     
-    print(f"✂️  Clipping inputs for region '{region_name}' using {shapefile_path}...")
+    source_msg = f" (Fuente: {data_source})" if data_source else " (Buscando en todo)"
+    print(f"✂️  Clipping inputs for region '{region_name}' using {shapefile_path}{source_msg}...")
     
     count = 0
     
@@ -95,16 +93,28 @@ def process_region(region_name, shapefile_path, source_dir=None):
         except:
             pass
 
-    # Define search paths for source data
-    # We look deep because users might download to 'inputs', 'inputs/FODESNA', or just root.
-    search_dirs = [
-        source_dir,
-        os.path.join(source_dir, "inputs"),
-        os.path.join(source_dir, "inputs", "FODESNA"),
-        os.path.join(source_dir, "inputs", "FDAT"),
-        os.path.join(source_dir, "FODESNA"),
-        os.path.join(source_dir, "FDAT"),
-    ]
+    # Define search paths based on data_source
+    if data_source == "FODESNA":
+        search_dirs = [
+            os.path.join(source_dir, "inputs", "FODESNA"),
+            os.path.join(source_dir, "FODESNA"),
+            os.path.join(source_dir, "inputs"), # Fallback if user put files directly in inputs but meant FODESNA? No, better be strict.
+        ]
+    elif data_source == "FDAT":
+        search_dirs = [
+            os.path.join(source_dir, "inputs", "FDAT"),
+            os.path.join(source_dir, "FDAT"),
+        ]
+    else:
+        # Default: Search everywhere (Legacy behavior)
+        search_dirs = [
+            source_dir,
+            os.path.join(source_dir, "inputs"),
+            os.path.join(source_dir, "inputs", "FODESNA"),
+            os.path.join(source_dir, "inputs", "FDAT"),
+            os.path.join(source_dir, "FODESNA"),
+            os.path.join(source_dir, "FDAT"),
+        ]
 
     for dom in settings.DOMAINS:
         found_domain = False
