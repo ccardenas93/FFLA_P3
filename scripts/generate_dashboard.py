@@ -16,12 +16,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")
 from organized.config import settings
 
 # Display names mapping
-DISPLAY_NAMES = {
-    "FDAT": "FMPLPT",
-    "FODESNA": "FODESNA"
+REGION_DISPLAY_NAMES = {
+    "FODESNA": "FODESNA",
+    "FMPLPT": "FMPLPT",
 }
 
-REGION_DISPLAY_ORDER = ["FODESNA", "FDAT"]
+REGION_DISPLAY_ORDER = ["FODESNA", "FMPLPT"]
 
 LOGO_FILES = [
     ("FFLA.png", "FFLA"),

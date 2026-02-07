@@ -6,31 +6,31 @@ import sys
 BASE_URL = "https://github.com/ccardenas93/FFLA/raw/main"
 
 # Structure to download
-# We focus on FDAT as it contains the national headers (based on previous inspection P_historical_ecuador.nc)
+# We focus on FMPLPT as it contains the national headers (based on previous inspection P_historical_ecuador.nc)
 # derived from the user's listing.
 # Renaming for clarity and ensuring we download everything
-FILES_FDAT = {
-    "FDAT/historical_ecuador": [
+FILES_FMPLPT = {
+    "FMPLPT/historical_ecuador": [
         "pr_historical_ecuador.nc", "tas_historical_ecuador.nc", 
         "tasmin_historical_ecuador.nc", "tasmax_historical_ecuador.nc"
     ],
-    "FDAT/ssp126_ecuador": [
+    "FMPLPT/ssp126_ecuador": [
         "pr_ssp126_ecuador.nc", "tas_ssp126_ecuador.nc", 
         "tasmin_ssp126_ecuador.nc", "tasmax_ssp126_ecuador.nc"
     ],
-    "FDAT/ssp370_ecuador": [
+    "FMPLPT/ssp370_ecuador": [
         "pr_ssp370_ecuador.nc", "tas_ssp370_ecuador.nc", 
         "tasmin_ssp370_ecuador.nc", "tasmax_ssp370_ecuador.nc"
     ],
-    "FDAT/ssp585_ecuador": [
+    "FMPLPT/ssp585_ecuador": [
         "pr_ssp585_ecuador.nc", "tas_ssp585_ecuador.nc", 
         "tasmin_ssp585_ecuador.nc", "tasmax_ssp585_ecuador.nc"
     ],
 }
-# Note: FDAT usually has P_ and T_ prefixes, differing from FODESNA's pr_ / tas_. 
-# If the repo actually has standard names for FDAT, we should use those.
+# Note: FMPLPT usually has P_ and T_ prefixes, differing from FODESNA's pr_ / tas_. 
+# If the repo actually has standard names for FMPLPT, we should use those.
 # But assuming the dictionary above was there for a reason, we keep it. 
-# UPDATE: User asked for FDAT specifically.
+# UPDATE: User asked for FMPLPT specifically.
 
 FILES_FODESNA = {
     "FODESNA/historical_ecuador": [
@@ -76,7 +76,7 @@ def run(base_dir=None):
     print(f"🚀 Starting Data Download to {target_base}...")
     
     # Check both sources
-    ALL_FILES = {**FILES_FODESNA, **FILES_FDAT}
+    ALL_FILES = {**FILES_FODESNA, **FILES_FMPLPT}
 
     for folder, files in ALL_FILES.items():
         # folder is "FODESNA/historical_ecuador" or "FDAT/..."
