@@ -12,7 +12,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.section import WD_SECTION, WD_ORIENT
 from organized.config import settings
 
-# Paths relative to outputs/<Region>/ (same structure as scripts write)
+
 FILE_STRUCTURE = {
     "1_series_temporales_temperatura": {
         "title": "1. Series Temporales de Temperatura (1980-2100)",
@@ -198,30 +198,30 @@ FILE_STRUCTURE = {
 
 def add_title_page(doc):
     """Añade página de portada."""
-    # Título principal
+
     title = doc.add_heading("ANEXO DE FIGURAS", 0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     title_run = title.runs[0]
     title_run.font.size = Pt(28)
     title_run.font.bold = True
     title_run.font.color.rgb = RGBColor(0, 51, 102)
-    
-    # Subtítulo
+
+
     subtitle = doc.add_heading("Análisis de Cambio Climático", 1)
     subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
     subtitle_run = subtitle.runs[0]
     subtitle_run.font.size = Pt(20)
-    
-    # Subtítulo 2
+
+
     subtitle2 = doc.add_heading("Proyecciones Hidrológicas y Climáticas", 1)
     subtitle2.alignment = WD_ALIGN_PARAGRAPH.CENTER
     subtitle2_run = subtitle2.runs[0]
     subtitle2_run.font.size = Pt(16)
-    
+
     doc.add_paragraph()
     doc.add_paragraph()
-    
-    # Regiones
+
+
     regions_para = doc.add_paragraph()
     regions_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
     region_names = [info["name"] for info in settings.REGIONS.values()]
@@ -229,25 +229,25 @@ def add_title_page(doc):
     regions_run = regions_para.add_run(regions_text)
     regions_run.font.size = Pt(14)
     regions_run.font.bold = True
-    
+
     doc.add_paragraph()
     doc.add_paragraph()
-    
-    # Período
+
+
     period_para = doc.add_paragraph()
     period_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
     period_run = period_para.add_run(f"Período de Análisis: {settings.PERIOD_START}-{settings.PERIOD_END}\nPeríodo Base: {settings.BASE_PERIOD[0]}-{settings.BASE_PERIOD[1]}")
     period_run.font.size = Pt(12)
-    
-    # Fecha
+
+
     doc.add_paragraph()
     date_para = doc.add_paragraph()
     date_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
     date_run = date_para.add_run(f"Fecha de generación: {datetime.now().strftime('%d de %B de %Y')}")
     date_run.font.size = Pt(11)
     date_run.font.italic = True
-    
-    # Salto de página
+
+
     doc.add_page_break()
 
 
@@ -255,7 +255,7 @@ def add_toc_placeholder(doc):
     """Añade placeholder para tabla de contenidos."""
     toc_heading = doc.add_heading("ÍNDICE", 0)
     toc_heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    
+
     doc.add_paragraph("(Tabla de contenidos - generar en Word con F9 o actualizar campos)")
     doc.add_paragraph()
     doc.add_page_break()
@@ -274,19 +274,19 @@ def add_figure(doc, image_path, caption, max_width=6.5):
     """Añade una figura con pie de foto."""
     if os.path.exists(image_path):
         try:
-            # Añadir imagen
+
             doc.add_picture(image_path, width=Inches(max_width))
             last_paragraph = doc.paragraphs[-1]
             last_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            
-            # Añadir pie de figura
+
+
             caption_para = doc.add_paragraph()
             caption_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
             caption_run = caption_para.add_run(f"Figura: {caption}")
             caption_run.font.size = Pt(10)
             caption_run.font.italic = True
             caption_run.font.color.rgb = RGBColor(64, 64, 64)
-            
+
             return True
         except Exception as e:
             print(f"  ⚠ Error añadiendo imagen {image_path}: {e}")
@@ -298,89 +298,89 @@ def add_figure(doc, image_path, caption, max_width=6.5):
 
 def create_document(specific_regions=None):
     """Crea el documento completo.
-    
+
     Args:
         specific_regions (list): Lista de códigos de región para procesar. Si es None, procesa todas.
     """
     print("Creando documento Word con figuras...")
-    
-    # Asegurar que existe directorio de reportes
+
+
     os.makedirs(settings.REPORTS_DIR, exist_ok=True)
 
-    # Crear documento
+
     doc = Document()
-    
-    # Configurar márgenes y formato de página
+
+
     sections = doc.sections
     for section in sections:
         section.top_margin = Inches(1)
         section.bottom_margin = Inches(1)
         section.left_margin = Inches(1)
         section.right_margin = Inches(1)
-    
-    # Página de portada
+
+
     print("\n📄 Generando portada...")
     add_title_page(doc)
-    
-    # Índice
+
+
     print("📑 Añadiendo índice...")
     add_toc_placeholder(doc)
-    
-    # Procesar cada región
+
+
     for region_code, region_info in settings.REGIONS.items():
         if specific_regions and region_code not in specific_regions:
             continue
-            
+
         region_name = region_info["name"]
         region_dir = settings.get_region_output_dir(region_code)
-        
+
         print(f"\n{'='*60}")
         print(f"🌍 Procesando región: {region_name}")
         print(f"{'='*60}")
-        
-        # Encabezado de región
+
+
         add_section_heading(doc, region_name)
-        
-        # Contador de figuras
+
+
         total_figs = 0
         added_figs = 0
-        
-        # Procesar cada categoría
+
+
         for category_key, category_info in FILE_STRUCTURE.items():
             category_title = category_info["title"]
             files_list = category_info["files"]
-            
+
             print(f"\n  📂 {category_title}")
-            
-            # Añadir encabezado de categoría
+
+
             doc.add_heading(category_title, 2)
-            
-            # Procesar cada figura en la categoría
+
+
             for file_path, caption in files_list:
                 full_path = os.path.join(region_dir, file_path)
                 total_figs += 1
-                
+
                 if add_figure(doc, full_path, caption):
                     added_figs += 1
                     print(f"    ✅ {caption}")
-                    doc.add_paragraph()  # Espacio después de la figura
+                    doc.add_paragraph()
                 else:
                     print(f"    ❌ {caption}")
-            
-            # Salto de página después de cada categoría
+
+
             doc.add_page_break()
-        
+
         print(f"\n  📊 Resumen {region_name}: {added_figs}/{total_figs} figuras añadidas")
-    
-    # Guardar documento
+
+
     output_path = os.path.join(settings.REPORTS_DIR, f"Anexo_Figuras_Cambio_Climatico_{datetime.now().strftime('%Y%m%d')}.docx")
     doc.save(output_path)
-    
+
     print(f"\n{'='*60}")
     print(f"✅ Documento creado exitosamente:")
     print(f"   {output_path}")
     print(f"{'='*60}")
-    
+
     return output_path
 
 

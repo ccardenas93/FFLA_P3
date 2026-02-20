@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# wb/Deliverables/deliverable_master_key_numbers.py
-# Resumen maestro de números clave de cambio climático (FDAT y FODESNA).
-# Salida: ROOT/Deliverables/master/key_numbers.txt (uno por cada ROOT).
-# Self-contained: uses repo config.
+
+
+
+
 
 import os
 import sys
@@ -15,14 +15,14 @@ from organized.config import settings
 
 np.seterr(all="ignore")
 
-# === Carpetas de entrada (regiones del repo) ===
+
 ROOTS = [info["path"] for info in settings.REGIONS.values()]
 
-# === Dominios (ya existentes) ===
+
 HIST = "historical_ecuador"
 SCENS = ["ssp126_ecuador", "ssp370_ecuador", "ssp585_ecuador"]
 
-# === Ventanas de análisis ===
+
 BASE = ("1981", "2010")
 WINS = [
     ("2021","2050"),
@@ -35,25 +35,25 @@ WIN_LABEL = {
     ("2071","2100"): "Tardío (2071–2100)",
 }
 
-# === Umbrales / parámetros ===
-DRY_THRESH_MM = 1.0  # día seco si P<1 mm/día
 
-# === Utilidades ===
+DRY_THRESH_MM = 1.0
+
+
 def area_mean(da):
     """
     Promedio espacial ponderado por cos(lat).
     CORRECTO: dividir por la suma de pesos en 'lat' y luego media uniforme en 'lon'.
     Soporta (lat,lon) y (time,lat,lon).
     """
-    w = np.cos(np.deg2rad(da["lat"]))             # (lat)
+    w = np.cos(np.deg2rad(da["lat"]))
     if "time" in da.dims:
-        num = (da * w).sum("lat")                 # (time, lon)
-        den = w.sum("lat")                        # escalar
-        return (num / den).mean("lon")            # (time)
-    else:
-        num = (da * w).sum("lat")                 # (lon)
+        num = (da * w).sum("lat")
         den = w.sum("lat")
-        return (num / den).mean("lon")            # escalar
+        return (num / den).mean("lon")
+    else:
+        num = (da * w).sum("lat")
+        den = w.sum("lat")
+        return (num / den).mean("lon")
 
 def load_wb_daily(root, dom, t0, t1):
     """Carga WB diario (y P, PET) mm/día, promediado espacialmente, y recorta tiempo."""
@@ -85,13 +85,13 @@ def load_tas_daily(root, dom, t0, t1):
     tas = ds["tas"]
     u = str(tas.attrs.get("units","")).lower()
 
-    # 1) por metadatos
+
     if ("k" in u) and ("c" not in u):
         tasC = tas - 273.15
     elif "c" in u:
         tasC = tas
     else:
-        # 2) heurística por magnitud/rango
+
         try:
             sample = float(tas.where(np.isfinite(tas), drop=True)
                                .isel(time=0, lat=tas.sizes["lat"]//2, lon=tas.sizes["lon"]//2))
@@ -105,12 +105,12 @@ def load_tas_daily(root, dom, t0, t1):
             vmax = float(tas.max())
             tasC = tas - 273.15 if (vmax > 100 or vmin < -100) else tas
 
-    tasC = area_mean(tasC)  # serie 1D en °C
+    tasC = area_mean(tasC)
     return tasC
 
 def ann_stats(series_mmday):
     """(media, std) anual para serie diaria mm/día -> mm/año sumando por año."""
-    y = series_mmday.resample(time="YS").sum("time")  # mm/año
+    y = series_mmday.resample(time="YS").sum("time")
     return float(y.mean()), float(y.std())
 
 def ann_mean(series_mmday):
@@ -160,7 +160,7 @@ def seasonal_windows_from_base(root):
     ds = load_wb_daily(root, HIST, *BASE)
     if ds is None: return None
     P = ds["P"]
-    mon = P.resample(time="MS").sum("time")  # mm/mes
+    mon = P.resample(time="MS").sum("time")
     clim = mon.groupby("time.month").mean("time").to_pandas()
     vals = clim.values
     ext = np.r_[vals, vals[:2]]
@@ -178,7 +178,7 @@ def label_trim(months):
 def write_line(f, text=""):
     f.write(text + "\n")
 
-# === MAIN ===
+
 for ROOT in ROOTS:
     out_dir = os.path.join(ROOT, "Deliverables", "master")
     os.makedirs(out_dir, exist_ok=True)
@@ -187,15 +187,15 @@ for ROOT in ROOTS:
 
     tri = seasonal_windows_from_base(ROOT)
 
-    # contenedores para el resumen ejecutivo (usaremos la ventana TARDÍO)
-    late_summary = {}  # scen -> dict con métricas clave en 2071–2100
+
+    late_summary = {}
 
     with open(out_txt, "w", encoding="utf-8") as f:
         write_line(f, f"# NÚMEROS CLAVE DE CAMBIO CLIMÁTICO — {region}")
         write_line(f, f"Período base: {BASE[0]}–{BASE[1]}")
         write_line(f, "")
 
-        # === BASE HISTÓRICA: promedios y dispersión ===
+
         base_ds = load_wb_daily(ROOT, HIST, *BASE)
         if base_ds is None:
             write_line(f, "⚠ No se encontraron datos históricos para la línea base.\n")
@@ -220,7 +220,7 @@ for ROOT in ROOTS:
             write_line(f, f"• Temperatura media anual: {Tm_base:,.1f} °C")
         write_line(f, "")
 
-        # === Estacionalidad: trimestres húmedo/seco ===
+
         if tri is not None:
             wet, dry = tri["wet"], tri["dry"]
             wet_lbl, dry_lbl = label_trim(wet), label_trim(dry)
@@ -243,7 +243,7 @@ for ROOT in ROOTS:
             wet_lbl = dry_lbl = None
             write_line(f, "⚠ No fue posible definir trimestres húmedo/seco (datos base insuficientes).\n")
 
-        # === Cambios por escenario y ventana ===
+
         write_line(f, "## Cambios proyectados vs 1981–2010")
         for scen in SCENS:
             write_line(f, f"### {scen.replace('_ecuador','').upper()}")
@@ -282,7 +282,7 @@ for ROOT in ROOTS:
                 if not np.isnan(dT):
                     write_line(f, f"   – ΔT media anual = {dT:+.1f} °C")
 
-                # cambios estacionales en trimestres definidos por la base
+
                 if tri is not None:
                     def tri_sum_f(da):
                         mon = da.resample(time="MS").sum("time")
@@ -296,7 +296,7 @@ for ROOT in ROOTS:
                     write_line(f, f"   – Trimestre húmedo ({label_trim(tri['wet'])}) ΔP={Pw_f-P_wet:+.0f} mm, ΔPET={Ew_f-PET_wet:+.0f} mm, ΔWB={WBw_f-WB_wet:+.0f} mm")
                     write_line(f, f"   – Trimestre seco   ({label_trim(tri['dry'])}) ΔP={Pd_f-P_dry:+.0f} mm, ΔPET={Ed_f-PET_dry:+.0f} mm, ΔWB={WBd_f-WB_dry:+.0f} mm")
 
-                # guardar métricas de la ventana TARDÍA para el resumen ejecutivo
+
                 if (t0, t1) == ("2071", "2100"):
                     late_summary[scen] = {
                         "dP": dP, "rP": rP,
@@ -307,9 +307,9 @@ for ROOT in ROOTS:
                         "dT": dT
                     }
 
-            write_line(f, "")  # línea en blanco por escenario
+            write_line(f, "")
 
-        # Notas
+
         write_line(f, "Notas:")
         write_line(f, f"• ‘Días secos’ definidos como P < {DRY_THRESH_MM} mm/día (serie promediada espacialmente).")
         write_line(f, "• CDD = racha seca máxima anual sobre la serie promediada espacialmente.")
@@ -317,9 +317,9 @@ for ROOT in ROOTS:
         write_line(f, "• Cambios estacionales calculados sobre los trimestres húmedo/seco definidos con la línea base.")
         write_line(f, "")
 
-        # =========================
-        # RESUMEN EJECUTIVO (simple, directo y comparable entre escenarios)
-        # =========================
+
+
+
         def fmt_pm(x):   return "N/D" if x is None or np.isnan(x) else f"{x:+.0f}"
         def fmt_pct(x):  return "N/D" if x is None or np.isnan(x) else f"{x:+.1f}%"
         def fmt_ai(x):   return "N/D" if x is None or np.isnan(x) else f"{x:+.2f}"

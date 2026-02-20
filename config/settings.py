@@ -1,18 +1,18 @@
 import os
 
-# Get the base directory of the 'organized' folder (self-contained; works when moved or bundled as exe)
-BASE_DIR_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BASE_DIR = BASE_DIR_PATH  # alias for scripts that expect BASE_DIR (e.g. merge_daily)
 
-# Directory definitions relative to the organized folder
+BASE_DIR_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = BASE_DIR_PATH
+
+
 INPUTS_DIR = os.path.join(BASE_DIR_PATH, "inputs")
 OUTPUTS_DIR = os.path.join(BASE_DIR_PATH, "outputs")
 REPORTS_DIR = os.path.join(BASE_DIR_PATH, "reports")
 DATA_DIR = os.path.join(BASE_DIR_PATH, "data")
 DERIVED_DIR = os.path.join(DATA_DIR, "derived")
 
-# Regions configuration
-# Paths now point to the 'inputs' directory inside 'organized'
+
+
 REGIONS = {
     "FMPLPT": {
         "name": "FMPLPT (Tungurahua)",
@@ -38,7 +38,7 @@ def add_dynamic_region(name, inputs_path, shapefile_path, output_path=None):
         REGIONS[region_code]["output_path"] = output_path
     return region_code
 
-# Model domains
+
 DOMAINS = [
     "historical_ecuador",
     "ssp126_ecuador",
@@ -46,15 +46,15 @@ DOMAINS = [
     "ssp585_ecuador"
 ]
 
-# Input Variables
+
 VARS = ['pr', 'tas', 'tasmax', 'tasmin']
 
-# Analysis periods
+
 PERIOD_START = 1980
 PERIOD_END = 2100
 BASE_PERIOD = (1981, 2010)
 
-# Visualization settings
+
 PALETTE = {
     "historical_ecuador": "k",
     "ssp126_ecuador": "tab:green",
@@ -64,7 +64,7 @@ PALETTE = {
 
 def get_region_output_dir(region_code):
     """Returns the output directory for a region (derived data + figures). All writes go here."""
-    # Check if this region has a custom output path defined in REGIONS
+
     if "output_path" in REGIONS[region_code]:
          return REGIONS[region_code]["output_path"]
     return os.path.join(OUTPUTS_DIR, REGIONS[region_code]["name"])
@@ -73,7 +73,7 @@ def get_region_input_dir(region_code):
     """Returns the input directory for a region (read-only: pr, tas, shapefiles)."""
     return REGIONS[region_code]["path"]
 
-# Output category folders (figures go directly here; no separate "organize" step)
+
 OUT_CAT_SERIES_TEMP = "01_Series_Temporales_Temperatura"
 OUT_CAT_SERIES_HIDRO = "02_Series_Temporales_Hidrologicas"
 OUT_CAT_INDICADORES = "03_Indicadores_Sequia"

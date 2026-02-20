@@ -5,7 +5,7 @@ import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
 
-# --- PROJ/GDAL (portable: env or Python prefix for exe/bundled) ---
+
 _prefix = os.environ.get("CONDA_PREFIX") or getattr(sys, "prefix", "")
 if _prefix:
     os.environ.setdefault("PROJ_LIB", os.path.join(_prefix, "share", "proj"))
@@ -53,7 +53,7 @@ def leer_mean(data_dir, dom, t0, t1, var):
         return None
     ds = xr.open_dataset(p).sel(time=slice(f"{t0}-01-01", f"{t1}-12-31"))
     if ds.sizes.get("time",0)==0: return None
-    return (ds[var].mean("time")*365.0)  # mm/año
+    return (ds[var].mean("time")*365.0)
 
 def run():
     print("\n" + "="*60)
@@ -69,17 +69,17 @@ def run():
         baseWB = leer_mean(output_dir, "historical_ecuador", *VENTANAS["Base_1981-2010"], "wb_mmday")
         baseP = leer_mean(output_dir, "historical_ecuador", *VENTANAS["Base_1981-2010"], "p_mmday")
         baseE = leer_mean(output_dir, "historical_ecuador", *VENTANAS["Base_1981-2010"], "pet_mmday")
-        if baseWB is None: 
+        if baseWB is None:
             print("  ⚠️ Missing baseline data"); continue
         lat,lon=baseWB["lat"].values, baseWB["lon"].values
 
-        # Escalas absolutas para P/PET de la base
+
         pmin,pmax = np.nanpercentile(baseP.values,[2,98])
         emin,emax = np.nanpercentile(baseE.values,[2,98])
         wb_span = np.nanpercentile(baseWB.values,[2,98])
         wb_abs = max(abs(wb_span[0]),abs(wb_span[1])); wb_abs=np.ceil(max(wb_abs,100)/100)*100
 
-        # 1) Mapas absolutos de la base
+
         fig,axs=plt.subplots(1,3,figsize=(15,4),sharex=True,sharey=True)
         im0=pm(axs[0],lat,lon,baseP.values,"Precipitación (mm/año)","Blues",pmin,pmax)
         im1=pm(axs[1],lat,lon,baseE.values,"Evapotranspiración (mm/año)","Oranges",emin,emax)

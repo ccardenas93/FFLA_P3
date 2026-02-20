@@ -1,4 +1,4 @@
-# Self-contained: uses repo config.
+
 import os
 import sys
 import numpy as np
@@ -11,7 +11,7 @@ from organized.config import settings
 ROOTS = [info["path"] for info in settings.REGIONS.values()]
 DOMAINS = settings.DOMAINS
 
-PERIOD = ("1980-01-01","2100-12-31")  # enforce analysis window
+PERIOD = ("1980-01-01","2100-12-31")
 
 def pr_to_mmday(da):
     u = str(da.attrs.get('units','')).lower().replace('**','^')
@@ -35,8 +35,8 @@ def ra_daily_np(lat_deg, doy):
     dr  = 1 + 0.033*np.cos(2*np.pi*doy/365.0)
     delta = 0.409*np.sin(2*np.pi*doy/365.0 - 1.39)
     ws  = np.arccos(np.clip(-np.tan(phi)*np.tan(delta), -1, 1))
-    Gsc = 0.0820  # MJ m-2 min-1
-    return (24*60/np.pi)*Gsc*dr*(ws*np.sin(phi)*np.sin(delta)+np.cos(phi)*np.cos(delta)*np.sin(ws))  # MJ/m2/day
+    Gsc = 0.0820
+    return (24*60/np.pi)*Gsc*dr*(ws*np.sin(phi)*np.sin(delta)+np.cos(phi)*np.cos(delta)*np.sin(ws))
 
 def as_celsius(da):
     u=str(da.attrs.get('units','')).lower()
@@ -61,14 +61,14 @@ def sanity_recompute_pet(root, dom, npts=3):
     lat = tmin['lat']; lon = tmin['lon']; time=tmin['time']
     doy = time.dt.dayofyear
 
-    LAT, DOY = xr.broadcast(lat, doy)                       # (lat,time)
+    LAT, DOY = xr.broadcast(lat, doy)
     Ra = xr.apply_ufunc(ra_daily_np, LAT, DOY, dask='allowed')
     Ra = Ra.transpose('lat','time').expand_dims({'lon': lon}).transpose('time','lat','lon')
 
-    pet_calc = 0.0023*Ra*(tmean+17.8)*((tmax-tmin).clip(min=0))**0.5  # mm/day
+    pet_calc = 0.0023*Ra*(tmean+17.8)*((tmax-tmin).clip(min=0))**0.5
     pet_file = dsp['pet']
 
-    # sample a few random grid points
+
     rng=np.random.default_rng(42)
     I = rng.integers(0, lat.size, size=min(npts, lat.size))
     J = rng.integers(0, lon.size, size=min(npts, lon.size))
@@ -90,7 +90,7 @@ def summarize_domain(root, dom):
         print("missing inputs for", root.split('/')[-1], dom); return
 
     ds_wb  = xr.open_dataset(paths['wb']).sel(time=slice(*PERIOD))
-    ds_agg = xr.open_dataset(paths['agg'])                 # already annual/monthly
+    ds_agg = xr.open_dataset(paths['agg'])
     ds_pr  = xr.open_dataset(paths['pr']).sel(time=slice(*PERIOD))
     ds_pet = xr.open_dataset(paths['pet']).sel(time=slice(*PERIOD))
 
@@ -102,7 +102,7 @@ def summarize_domain(root, dom):
     pet_mean = float(wmean(PET).mean('time'))
     wb_mean  = float(wmean(WB).mean('time'))
 
-    # quick seasonality clue
+
     mon = pd.DataFrame({
         'P':   wmean(P).resample(time='MS').sum('time').groupby('time.month').mean().to_pandas(),
         'PET': wmean(PET).resample(time='MS').sum('time').groupby('time.month').mean().to_pandas(),
@@ -118,7 +118,7 @@ def summarize_domain(root, dom):
     if pet_mean>8: print("  ⚠ PET unusually high; check units/temps")
     if p_mean<1:   print("  ⚠ Very low P; clipped area might be dry or units wrong")
 
-    # compare recompute vs saved PET at a few grid points
+
     sample_rows = sanity_recompute_pet(root, dom, npts=3)
     if sample_rows:
         df=pd.DataFrame(sample_rows)

@@ -11,8 +11,8 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 from organized.config import settings
 
-# Estructura de carpetas organizadas
-# Cada categoría tiene: nombre de carpeta destino, lista de (archivo origen, nombre descriptivo)
+
+
 FOLDER_STRUCTURE = {
     "01_Series_Temporales_Temperatura": {
         "description": "Series temporales de temperatura (1980-2100)",
@@ -220,11 +220,11 @@ def run():
     print("ORGANIZADOR DE FIGURAS - ANÁLISIS DE CAMBIO CLIMÁTICO")
     print("="*70)
     print(f"\nDirectorio de salida: {output_dir}\n")
-    
-    # Crear directorio principal de salida
+
+
     os.makedirs(output_dir, exist_ok=True)
-    
-    # Crear README principal
+
+
     main_readme = os.path.join(output_dir, "README.txt")
     with open(main_readme, 'w', encoding='utf-8') as f:
         f.write("FIGURAS ORGANIZADAS - ANÁLISIS DE CAMBIO CLIMÁTICO\n")
@@ -236,54 +236,54 @@ def run():
             f.write(f"- {region_info['name']}/: Figuras para {region_info['name']}\n")
         f.write("\nCada región tiene categorías organizadas por tipo de análisis.\n\n")
         f.write("Generado automáticamente.\n")
-    
-    # Estadísticas
+
+
     total_files_copied = 0
     total_files_missing = 0
-    
-    # Procesar cada región
+
+
     for region_code, region_info in settings.REGIONS.items():
         region_name = region_info["name"]
-        # The issue was here: source_dir was settings.REGIONS["path"] which is .../organized/inputs/FDAT
-        # But figures are generated into .../organized/inputs/FDAT/figs/ or .../organized/inputs/FDAT/Deliverables/
-        # The relative paths in FOLDER_STRUCTURE (e.g. "figs/...") expect source_dir to be the region root.
-        # We need to make sure source_dir is correct.
-        source_dir = region_info["path"] 
-        
+
+
+
+
+        source_dir = region_info["path"]
+
         region_output = os.path.join(output_dir, region_name)
-        
+
         print(f"\n{'='*70}")
         print(f"🌍 REGIÓN: {region_name}")
         print(f"   Origen: {source_dir}")
         print(f"{'='*70}")
-        
-        # Crear carpeta de región
+
+
         os.makedirs(region_output, exist_ok=True)
-        
+
         region_copied = 0
         region_missing = 0
-        
-        # Procesar cada categoría
+
+
         for folder_name, folder_info in FOLDER_STRUCTURE.items():
             description = folder_info["description"]
             files_list = folder_info["files"]
-            
-            # Crear carpeta de categoría
+
+
             category_path = os.path.join(region_output, folder_name)
             os.makedirs(category_path, exist_ok=True)
-            
-            # Crear README en la carpeta
+
+
             create_readme(category_path, description)
-            
+
             print(f"\n  📂 {folder_name}")
             print(f"     {description}")
-            
-            # Copiar archivos
+
+
             for source_file, dest_name in files_list:
-                # The source file is relative to the region root (e.g., "figs/my_plot.png")
+
                 source_path = os.path.join(source_dir, source_file)
                 dest_path = os.path.join(category_path, dest_name)
-                
+
                 if os.path.exists(source_path):
                     try:
                         shutil.copy2(source_path, dest_path)
@@ -298,13 +298,13 @@ def run():
                     print(f"     ❌ No encontrado: {source_path}")
                     region_missing += 1
                     total_files_missing += 1
-        
-        # Resumen regional
+
+
         print(f"\n  📊 Resumen {region_name}:")
         print(f"     Copiados: {region_copied}")
         print(f"     Faltantes: {region_missing}")
-    
-    # Resumen final
+
+
     print(f"\n{'='*70}")
     print(f"✅ PROCESO COMPLETADO")
     print(f"{'='*70}")
@@ -319,7 +319,7 @@ def create_index_html():
     """Crea un índice HTML para navegación visual (opcional)."""
     output_dir = settings.OUTPUTS_DIR
     index_path = os.path.join(output_dir, "index.html")
-    
+
     html_content = """<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -383,7 +383,7 @@ def create_index_html():
     <h1>📊 Índice de Figuras - Análisis de Cambio Climático</h1>
     <p><strong>Período de análisis:</strong> 1980-2100 | <strong>Período base:</strong> 1981-2010</p>
 """
-    
+
     for region_code, region_info in settings.REGIONS.items():
         region_name = region_info["name"]
         html_content += f"""
@@ -400,7 +400,7 @@ def create_index_html():
         </div>
 """
         html_content += "    </div>\n"
-    
+
     html_content += """
     <div style="text-align: center; margin-top: 40px; color: #666;">
         <p>Generado automáticamente.</p>
@@ -408,10 +408,10 @@ def create_index_html():
 </body>
 </html>
 """
-    
+
     with open(index_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
-    
+
     print(f"📄 Índice HTML creado: {index_path}")
 
 

@@ -9,7 +9,7 @@ def ra_daily_np(lat_deg, doy):
     delta=0.409*np.sin(2*np.pi*doy/365.0-1.39)
     ws=np.arccos(np.clip(-np.tan(phi)*np.tan(delta), -1, 1))
     Gsc=0.0820
-    return (24*60/np.pi)*Gsc*dr*(ws*np.sin(phi)*np.sin(delta)+np.cos(phi)*np.cos(delta)*np.sin(ws))  # MJ/m2/day
+    return (24*60/np.pi)*Gsc*dr*(ws*np.sin(phi)*np.sin(delta)+np.cos(phi)*np.cos(delta)*np.sin(ws))
 
 def as_celsius(da):
     u=str(da.attrs.get('units','')).lower()

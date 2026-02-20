@@ -22,15 +22,15 @@ COL = settings.PALETTE
 def wlat(lat): return xr.DataArray(np.cos(np.deg2rad(lat)), coords={'lat': lat}, dims=['lat'])
 def wmean(da): return da.weighted(wlat(da['lat'])).mean(('lat','lon'))
 
-def mean_series(path, var, t0, t1):  # var in wb_{dom}.nc (p_mmday, pet_mmday, wb_mmday)
+def mean_series(path, var, t0, t1):
     if not os.path.exists(path): return None
     ds = xr.open_dataset(path).sel(time=slice(f"{t0}-01-01", f"{t1}-12-31"))
     if ds.sizes.get("time",0)==0: return None
     if var not in ds: return None
-    
-    # Correct order: spatial average first (on daily), then monthly sum, then climatology
-    daily_mean = wmean(ds[var])  # mm/day, area-averaged
-    mon = daily_mean.resample(time="MS").sum("time")  # mm/month
+
+
+    daily_mean = wmean(ds[var])
+    mon = daily_mean.resample(time="MS").sum("time")
     s = mon.groupby("time.month").mean("time").to_pandas()
     s.index = range(1,13)
     return s

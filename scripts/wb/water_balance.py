@@ -4,11 +4,11 @@ from organized.config import settings
 
 def pr_to_mmday(da):
     u = str(da.attrs.get('units','')).lower().replace('**','^')
-    if any(k in u for k in ['kg','s^-1','s-1']):   # flux in SI
+    if any(k in u for k in ['kg','s^-1','s-1']):
         out = da * 86400.0
         out.attrs['units'] = 'mm/day'
         return out
-    # already in mm or mm/day
+
     out = da.copy()
     out.attrs['units'] = 'mm/day'
     return out

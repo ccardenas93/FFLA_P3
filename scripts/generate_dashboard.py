@@ -11,11 +11,11 @@ import json
 import shutil
 import subprocess
 
-# Add project root to path
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 from organized.config import settings
 
-# Display names mapping
+
 REGION_DISPLAY_NAMES = {
     "FODESNA": "FODESNA",
     "FMPLPT": "FMPLPT",
@@ -92,9 +92,9 @@ def generate_html_content():
             --border: #e2e8f0;
             --sidebar-width: 260px;
         }
-        
+
         * { box-sizing: border-box; }
-        
+
         body {
             font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
             line-height: 1.6;
@@ -105,7 +105,7 @@ def generate_html_content():
             flex-direction: column;
             min-height: 100vh;
         }
-        
+
         /* --- Header --- */
         header {
             background-color: white;
@@ -121,10 +121,10 @@ def generate_html_content():
             height: 90px;
             gap: 20px;
         }
-        
+
         .logo-area h1 { margin: 0; font-size: 1.4rem; color: var(--primary); font-weight: 700; }
         .logo-area span { display:block; font-weight: 500; color: #64748b; font-size: 0.85rem; }
-        
+
         .logo-strip {
             display: flex;
             gap: 14px;
@@ -136,7 +136,7 @@ def generate_html_content():
             object-fit: contain;
             filter: drop-shadow(0 1px 3px rgba(0,0,0,0.12));
         }
-        
+
         /* --- Layout --- */
         .main-wrapper {
             display: flex;
@@ -144,7 +144,7 @@ def generate_html_content():
             height: calc(100vh - 70px);
             overflow: hidden;
         }
-        
+
         /* --- Sidebar --- */
         .sidebar {
             width: var(--sidebar-width);
@@ -156,7 +156,7 @@ def generate_html_content():
             overflow-y: auto;
             flex-shrink: 0;
         }
-        
+
         .sidebar-label {
             padding: 0 20px;
             font-size: 0.75rem;
@@ -167,7 +167,7 @@ def generate_html_content():
             margin-bottom: 10px;
             margin-top: 20px;
         }
-        
+
         .nav-item {
             padding: 12px 20px;
             color: var(--secondary);
@@ -180,21 +180,21 @@ def generate_html_content():
             cursor: pointer;
             font-size: 0.95rem;
         }
-        
+
         .nav-item:hover {
             background-color: var(--light);
             color: var(--primary);
         }
-        
+
         .nav-item.active {
             background-color: #eff6ff;
             color: var(--accent);
             border-left-color: var(--accent);
             font-weight: 600;
         }
-        
+
         .nav-item i { width: 20px; text-align: center; }
-        
+
         /* --- Main Content --- */
         .content-area {
             flex: 1;
@@ -202,13 +202,13 @@ def generate_html_content():
             overflow-y: auto;
             scroll-behavior: smooth;
         }
-        
+
         .section-container {
             max-width: 1400px;
             margin: 0 auto;
             margin-bottom: 60px;
         }
-        
+
         .section-title {
             font-size: 1.5rem;
             color: var(--primary);
@@ -219,7 +219,7 @@ def generate_html_content():
             align-items: center;
             gap: 12px;
         }
-        
+
         /* --- Region Selector (Top Bar) --- */
         .region-selector {
             display: flex;
@@ -228,7 +228,7 @@ def generate_html_content():
             padding: 5px;
             border-radius: 8px;
         }
-        
+
         .region-btn {
             padding: 8px 16px;
             border: none;
@@ -239,22 +239,22 @@ def generate_html_content():
             color: #64748b;
             transition: all 0.2s;
         }
-        
+
         .region-btn.active {
             background: white;
             color: var(--accent);
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        
+
         /* --- Cards & Grids --- */
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
             gap: 25px;
         }
-        
+
         .full-width { grid-column: 1 / -1; }
-        
+
         .card {
             background: white;
             border-radius: 12px;
@@ -263,12 +263,12 @@ def generate_html_content():
             overflow: hidden;
             transition: transform 0.2s, box-shadow 0.2s;
         }
-        
+
         .card:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
         }
-        
+
         .card-header {
             padding: 15px 20px;
             border-bottom: 1px solid var(--border);
@@ -279,10 +279,10 @@ def generate_html_content():
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .card-body { padding: 0; }
         .card-padding { padding: 20px; }
-        
+
         .img-wrapper {
             width: 100%;
             height: 250px;
@@ -293,7 +293,7 @@ def generate_html_content():
             background: #f1f5f9;
             cursor: zoom-in;
         }
-        
+
         .img-wrapper img {
             width: 100%;
             height: 100%;
@@ -304,9 +304,9 @@ def generate_html_content():
         .img-wrapper.img-contain img {
             object-fit: contain;
         }
-        
+
         .img-wrapper:hover img { transform: scale(1.05); }
-        
+
         .img-caption {
             padding: 12px 20px;
             font-size: 0.85rem;
@@ -314,7 +314,7 @@ def generate_html_content():
             background: white;
             border-top: 1px solid var(--border);
         }
-        
+
         /* --- Key Metrics Styles --- */
         .metrics-row {
             display: grid;
@@ -322,7 +322,7 @@ def generate_html_content():
             gap: 15px;
             margin-bottom: 30px;
         }
-        
+
         .kpi-card {
             background: white;
             padding: 20px;
@@ -335,7 +335,7 @@ def generate_html_content():
         .kpi-value { font-size: 1.6rem; font-weight: 800; color: var(--primary); margin: 5px 0; }
         .kpi-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; }
         .kpi-sub { font-size: 0.8rem; color: #94a3b8; margin-top: 5px; }
-        
+
         /* AI Gauge */
         .ai-scale {
             margin-top: 10px;
@@ -362,12 +362,12 @@ def generate_html_content():
             border-radius: 8px;
             border: 1px solid var(--border);
         }
-        
+
         table { width: 100%; border-collapse: collapse; background: white; }
         th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
         th { background: #f8fafc; font-weight: 600; color: var(--secondary); }
         tr:last-child td { border-bottom: none; }
-        
+
         .badge {
             display: inline-block;
             padding: 4px 8px;
@@ -378,7 +378,7 @@ def generate_html_content():
         .badge-ssp126 { background: #dcfce7; color: #15803d; }
         .badge-ssp370 { background: #fef3c7; color: #b45309; }
         .badge-ssp585 { background: #fee2e2; color: #b91c1c; }
-        
+
         .val-pos { color: #10b981; font-weight: 600; }
         .val-neg { color: #ef4444; font-weight: 600; }
 
@@ -421,14 +421,14 @@ def generate_html_content():
             align-items: center;
             padding: 40px;
         }
-        
+
         .lightbox img {
             max-width: 100%;
             max-height: 100%;
             border-radius: 4px;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
         }
-        
+
         .lightbox-close {
             position: absolute;
             top: 20px; right: 30px;
@@ -443,16 +443,16 @@ def generate_html_content():
     </style>
     <script>
         // Global variable to track the currently active region
-        var activeRegion = ''; 
+        var activeRegion = '';
 
         function switchRegion(regionId) {
             activeRegion = regionId;
-            
+
             // Hide all region contents
             document.querySelectorAll('.region-content').forEach(el => el.style.display = 'none');
             // Show selected region content
             document.getElementById('content-' + regionId).style.display = 'block';
-            
+
             // Update button states
             document.querySelectorAll('.region-btn').forEach(el => el.classList.remove('active'));
             document.getElementById('btn-' + regionId).classList.add('active');
@@ -474,31 +474,31 @@ def generate_html_content():
             // Hide all contents for this region
             const container = document.getElementById('scen-container-' + regionCode);
             container.querySelectorAll('.scen-content').forEach(el => el.style.display = 'none');
-            
+
             // Show selected
             document.getElementById('scen-content-' + regionCode + '-' + scenKey).style.display = 'block';
-            
+
             // Update tabs
             const tabContainer = document.getElementById('scen-tabs-' + regionCode);
             tabContainer.querySelectorAll('.scen-tab').forEach(el => el.classList.remove('active'));
             document.getElementById('tab-' + regionCode + '-' + scenKey).classList.add('active');
         }
-        
+
         function openLightbox(src) {
             const lb = document.getElementById('lightbox');
             const img = document.getElementById('lightbox-img');
             img.src = src;
             lb.style.display = 'flex';
         }
-        
+
         function closeLightbox() {
             document.getElementById('lightbox').style.display = 'none';
         }
-        
+
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') closeLightbox();
         });
-        
+
         // Initialize activeRegion on load
         window.addEventListener('DOMContentLoaded', () => {
             // Find the button with class 'active' to determine default region
@@ -523,11 +523,11 @@ def generate_html_content():
         html += f'            <img src="{logo_path}" alt="{logo_alt}">\n'
 
     html += """        </div>
-        
+
         <div class="region-selector">
 """
-    
-    # Determine display order for regions
+
+
     region_keys = []
     for code in REGION_DISPLAY_ORDER:
         if code in settings.REGIONS and code not in region_keys:
@@ -536,13 +536,13 @@ def generate_html_content():
         if code not in region_keys:
             region_keys.append(code)
 
-    # Region Buttons
+
     first = True
     for r_code in region_keys:
         active_cls = " active" if first else ""
-        # Use mapped display        # Try to match to known display names
+
         r_display = REGION_DISPLAY_NAMES.get(r_code, settings.REGIONS[r_code]['name'])
-        
+
         html += f"""            <button id="btn-{r_code}" class="region-btn{active_cls}" onclick="switchRegion('{r_code}')">{r_display}</button>\n"""
         first = False
 
@@ -550,7 +550,7 @@ def generate_html_content():
     </header>
 
     <div class="main-wrapper">
-        
+
         <!-- SIDEBAR -->
         <div class="sidebar">
             <div class="sidebar-label">Navegación</div>
@@ -569,7 +569,7 @@ def generate_html_content():
             <div class="nav-item" onclick="scrollToSection('mapas')">
                 <i class="fas fa-map"></i> Análisis Espacial
             </div>
-            
+
             <div style="flex:1"></div>
             <div style="padding: 20px; font-size: 0.75rem; color: #94a3b8; text-align: center;">
                 &copy; 2025 Producto 1 · Balance Hídrico<br>Equipo de Consultoría
@@ -580,49 +580,49 @@ def generate_html_content():
         <div class="content-area">
 """
 
-    # --- LOOP REGIONS ---
+
     first = True
-    
-    # Filter keys if specific regions requested (via global or arg? Dashboard script is monolithic)
-    # Let's add an argument to generate_html_content or wrap it.
-    # Ideally, we should refactor run() to accept it.
-    
+
+
+
+
+
     for r_code in region_keys:
-        # Check if we should skip
-        # Note: We need to pass this down from run()
-        pass 
-        
+
+
+        pass
+
         r_info = settings.REGIONS[r_code]
-        r_name = r_info['name'] # Use folder name for paths
+        r_name = r_info['name']
         display_style = "block" if first else "none"
         first = False
-        
-        # Load JSON data
+
+
         json_path = os.path.join(settings.OUTPUTS_DIR, r_name, "24_Resumen_Ejecutivo", "key_numbers.json")
         data = load_key_numbers_json(json_path)
-        
-        # Helper for image paths
+
+
         def img(category, filename):
             return f"{r_name}/{category}/{filename}"
 
         html += f"""
             <div id="content-{r_code}" class="region-content" style="display: {display_style};">
-                
+
                 <!-- SECTION: RESUMEN EJECUTIVO -->
                 <div id="resumen-{r_code}" class="section-container">
                     <div class="section-title"><i class="fas fa-clipboard-check"></i> Resumen Ejecutivo (Línea Base 1981-2010)</div>
-                    
+
                     <!-- Key Metrics -->
                     <div class="metrics-row">
         """
-        
+
         if data and "baseline" in data:
             b = data["baseline"]
-            
-            # Calculate AI category
+
+
             ai_val = b['AI']
             cat_name, cat_color, cat_pct = get_ai_category(ai_val)
-            
+
             html += f"""
                         <div class="kpi-card">
                             <div class="kpi-label">Precipitación</div>
@@ -656,10 +656,10 @@ def generate_html_content():
                             <div class="kpi-sub">Máximo consecutivo</div>
                         </div>
             """
-        
+
         html += """
                     </div>
-                    
+
                     <!-- Warming Stripes -->
                     <div class="card full-width" style="margin-bottom: 30px;">
                         <div class="card-header">
@@ -670,17 +670,17 @@ def generate_html_content():
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- SECTION: ESCENARIOS -->
                 <div id="escenarios-{code}" class="section-container">
                     <div class="section-title"><i class="fas fa-layer-group"></i> Análisis por Escenario</div>
-                    
+
                     <div class="scenario-tabs" id="scen-tabs-{code}">
                         <div id="tab-{code}-ssp126" class="scen-tab active" onclick="switchScenarioTab('{code}', 'ssp126')">SSP1-2.6 (Optimista)</div>
                         <div id="tab-{code}-ssp370" class="scen-tab" onclick="switchScenarioTab('{code}', 'ssp370')">SSP3-7.0 (Medio)</div>
                         <div id="tab-{code}-ssp585" class="scen-tab" onclick="switchScenarioTab('{code}', 'ssp585')">SSP5-8.5 (Pesimista)</div>
                     </div>
-                    
+
                     <div id="scen-container-{code}">
         """.format(
             img('01_Series_Temporales_Temperatura', 'warming_stripes_anomalias.png'),
@@ -688,25 +688,25 @@ def generate_html_content():
             code=r_code
         )
 
-        # Loop through scenarios to create tabs content
+
         scenarios = [("ssp126", "SSP1-2.6"), ("ssp370", "SSP3-7.0"), ("ssp585", "SSP5-8.5")]
         for i, (scen_key, scen_label) in enumerate(scenarios):
             display = "block" if i == 0 else "none"
-            
-            # Build table rows for this scenario
+
+
             table_rows = ""
             if data and "projections" in data:
-                # key in json is like 'ssp126'
+
                 scen_data = data["projections"].get(scen_key, {})
-                # periods in order
+
                 periods = ["2021-2050", "2041-2070", "2071-2100"]
                 period_labels = ["Cercano (2021-2050)", "Medio (2041-2070)", "Tardío (2071-2100)"]
-                
+
                 for pid, plabel in zip(periods, period_labels):
                     p = scen_data.get(pid, {})
                     dWB = p.get('delta_WB_mm', 0)
                     cls_wb = "val-neg" if dWB < 0 else "val-pos"
-                    
+
                     table_rows += f"""
                         <tr>
                             <td><b>{plabel}</b></td>
@@ -717,15 +717,15 @@ def generate_html_content():
                             <td>{p.get('delta_CDD', 0):+} días</td>
                         </tr>
                     """
-            
-            # Image paths for this scenario
+
+
             bar_chart = img('09_Cambios_Balance_Hidrico', f'delta_WB_{scen_key}.png')
-            # Monthly maps for 3 periods
+
             map_near = img(f'21_Mapas_Mensuales_Delta_{scen_key.upper()}', f'delta_WB_mensual_{scen_key}_cercano.png')
             map_mid = img(f'21_Mapas_Mensuales_Delta_{scen_key.upper()}', f'delta_WB_mensual_{scen_key}_medio.png')
             map_late = img(f'21_Mapas_Mensuales_Delta_{scen_key.upper()}', f'delta_WB_mensual_{scen_key}_tardio.png')
-            
-            # Fix folder name index for 370/585
+
+
             if scen_key == 'ssp370':
                 map_near = img('22_Mapas_Mensuales_Delta_SSP370', f'delta_WB_mensual_{scen_key}_cercano.png')
                 map_mid = img('22_Mapas_Mensuales_Delta_SSP370', f'delta_WB_mensual_{scen_key}_medio.png')
@@ -759,7 +759,7 @@ def generate_html_content():
                                         </table>
                                     </div>
                                 </div>
-                                
+
                                 <!-- Bar Chart -->
                                 <div class="card">
                                     <div class="card-header">Cambio en Balance Hídrico (Anual)</div>
@@ -767,7 +767,7 @@ def generate_html_content():
                                         <img src="{bar_chart}" loading="lazy">
                                     </div>
                                 </div>
-                                
+
                                 <!-- Monthly Maps -->
                                 <div class="card">
                                     <div class="card-header">Mapa Mensual: Cercano (2021-2050)</div>
@@ -790,7 +790,7 @@ def generate_html_content():
                             </div>
                         </div>
             """
-        
+
         html += """
                     </div>
                 </div>
@@ -798,7 +798,7 @@ def generate_html_content():
                 <!-- SECTION: SERIES TEMPORALES -->
                 <div id="series-{code}" class="section-container">
                     <div class="section-title"><i class="fas fa-chart-line"></i> Series Temporales (1980-2100)</div>
-                    
+
                     <div class="dashboard-grid">
                         <div class="card">
                             <div class="card-header">Temperatura Media</div>
@@ -808,7 +808,7 @@ def generate_html_content():
                             <div class="card-header">Temperatura Máxima</div>
                             <div class="img-wrapper" onclick="openLightbox('{}')"><img src="{}" loading="lazy"></div>
                         </div>
-                        
+
                         <div class="card">
                             <div class="card-header">Precipitación Anual</div>
                             <div class="img-wrapper" onclick="openLightbox('{}')"><img src="{}" loading="lazy"></div>
@@ -817,7 +817,7 @@ def generate_html_content():
                             <div class="card-header">Balance Hídrico</div>
                             <div class="img-wrapper" onclick="openLightbox('{}')"><img src="{}" loading="lazy"></div>
                         </div>
-                        
+
                         <div class="card">
                             <div class="card-header">Índice de Aridez</div>
                             <div class="img-wrapper" onclick="openLightbox('{}')"><img src="{}" loading="lazy"></div>
@@ -828,11 +828,11 @@ def generate_html_content():
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- SECTION: ESTACIONALIDAD -->
                 <div id="estacionalidad-{code}" class="section-container">
                     <div class="section-title"><i class="fas fa-calendar-alt"></i> Ciclo Estacional y Cambios</div>
-                    
+
                     <div class="dashboard-grid">
                         <div class="card full-width">
                              <div class="card-header">Comparativa Ciclo Anual: Balance Hídrico</div>
@@ -840,7 +840,7 @@ def generate_html_content():
                                 <img src="{}" loading="lazy">
                              </div>
                         </div>
-                        
+
                         <div class="card">
                              <div class="card-header">Ciclo Precipitación</div>
                              <div class="img-wrapper" onclick="openLightbox('{}')"><img src="{}" loading="lazy"></div>
@@ -849,7 +849,7 @@ def generate_html_content():
                              <div class="card-header">Ciclo Evapotranspiración</div>
                              <div class="img-wrapper" onclick="openLightbox('{}')"><img src="{}" loading="lazy"></div>
                         </div>
-                        
+
                         <div class="card">
                              <div class="card-header">Mapas Trimestrales (Base)</div>
                              <div class="img-wrapper" onclick="openLightbox('{}')"><img src="{}" loading="lazy"></div>
@@ -862,12 +862,12 @@ def generate_html_content():
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- SECTION: MAPAS -->
                 <div id="mapas-{code}" class="section-container">
                     <div class="section-title"><i class="fas fa-map-marked-alt"></i> Análisis Espacial de Impactos</div>
                     <div style="margin-bottom: 20px; color: #64748b;">Mostrando horizonte tardío (2071-2100) bajo escenario pesimista (SSP5-8.5) para resaltar riesgos máximos.</div>
-                    
+
                     <div class="dashboard-grid">
                         <div class="card">
                             <div class="card-header">Cambio en Precipitación</div>
@@ -877,7 +877,7 @@ def generate_html_content():
                             <div class="card-header">Cambio en Balance Hídrico</div>
                             <div class="img-wrapper" onclick="openLightbox('{}')"><img src="{}" loading="lazy"></div>
                         </div>
-                        
+
                         <div class="card full-width">
                             <div class="card-header">Detalle Mensual de Cambios (Delta WB)</div>
                             <div class="img-wrapper" style="height: 500px;" onclick="openLightbox('{}')">
@@ -889,28 +889,28 @@ def generate_html_content():
 
             </div>
         """.format(
-            # Series
+
             img('01_Series_Temporales_Temperatura', 'temperatura_media_anual.png'), img('01_Series_Temporales_Temperatura', 'temperatura_media_anual.png'),
             img('01_Series_Temporales_Temperatura', 'temperatura_maxima_anual.png'), img('01_Series_Temporales_Temperatura', 'temperatura_maxima_anual.png'),
             img('02_Series_Temporales_Hidrologicas', 'precipitacion_anual.png'), img('02_Series_Temporales_Hidrologicas', 'precipitacion_anual.png'),
             img('02_Series_Temporales_Hidrologicas', 'balance_hidrico_anual.png'), img('02_Series_Temporales_Hidrologicas', 'balance_hidrico_anual.png'),
             img('03_Indicadores_Sequia', 'indice_aridez_serie_temporal.png'), img('03_Indicadores_Sequia', 'indice_aridez_serie_temporal.png'),
             img('03_Indicadores_Sequia', 'dias_secos_consecutivos_serie_temporal.png'), img('03_Indicadores_Sequia', 'dias_secos_consecutivos_serie_temporal.png'),
-            
-            # Estacionalidad
+
+
             img('04_Climatologia_Mensual_Comparativa', 'ciclo_anual_balance_hidrico.png'), img('04_Climatologia_Mensual_Comparativa', 'ciclo_anual_balance_hidrico.png'),
             img('04_Climatologia_Mensual_Comparativa', 'ciclo_anual_precipitacion.png'), img('04_Climatologia_Mensual_Comparativa', 'ciclo_anual_precipitacion.png'),
             img('04_Climatologia_Mensual_Comparativa', 'ciclo_anual_evapotranspiracion.png'), img('04_Climatologia_Mensual_Comparativa', 'ciclo_anual_evapotranspiracion.png'),
             img('15_Trimestres_Base', 'WB_trimestres_base_1981-2010.png'), img('15_Trimestres_Base', 'WB_trimestres_base_1981-2010.png'),
             img('16_Trimestres_Cambios', 'delta_trimestres_ssp585.png'), img('16_Trimestres_Cambios', 'delta_trimestres_ssp585.png'),
 
-            # Mapas
+
             img('11_Mapas_Cambios_Precipitacion', 'delta_P_tardio_2071-2100.png'), img('11_Mapas_Cambios_Precipitacion', 'delta_P_tardio_2071-2100.png'),
             img('13_Mapas_Cambios_Balance_Hidrico', 'delta_WB_tardio_2071-2100.png'), img('13_Mapas_Cambios_Balance_Hidrico', 'delta_WB_tardio_2071-2100.png'),
             img('23_Mapas_Mensuales_Delta_SSP585', 'delta_WB_mensual_ssp585_tardio.png'), img('23_Mapas_Mensuales_Delta_SSP585', 'delta_WB_mensual_ssp585_tardio.png'),
             code=r_code
         )
-        
+
     html += """
         </div> <!-- End Content Area -->
     </div> <!-- End Main Wrapper -->
@@ -924,11 +924,11 @@ def generate_html_content():
 </body>
 </html>
 """
-    
+
     output_path = os.path.join(settings.OUTPUTS_DIR, "index.html")
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(html)
-    
+
     print(f"✅ Dashboard generado: {output_path}")
 
 

@@ -34,7 +34,7 @@ def run():
         hb = os.path.join(input_dir, "historical_ecuador", "tas_historical_ecuador.nc")
         if not os.path.exists(hb):
             hb = os.path.join(input_dir, "historical_ecuador", "tas.nc")
-        if not os.path.exists(hb): 
+        if not os.path.exists(hb):
             print(f"  ⚠️ Datos históricos no encontrados para línea base")
             continue
 
@@ -43,13 +43,13 @@ def run():
             tas_var = 'tas' if 'tas' in ds_hist else 'tmean'
             T = ds_hist[tas_var]
             T = as_celsius(T)
-            
-            # Calculate baseline mean (1981-2010)
+
+
             base_slice = T.sel(time=slice(f"{BASE[0]}-01-01", f"{BASE[1]}-12-31"))
             if base_slice.sizes['time'] == 0:
                  print(f"  ⚠️ No hay datos en período base {BASE} para {region_info['name']}")
                  continue
-                 
+
             base = wmean(base_slice.resample(time="YS").mean()).mean().item()
         except Exception as e:
             print(f"  ❌ Error calculando línea base: {e}")
@@ -64,8 +64,8 @@ def run():
             p = os.path.join(input_dir, dom, f"tas_{dom}.nc")
             if not os.path.exists(p):
                 p = os.path.join(input_dir, dom, "tas.nc")
-            
-            if not os.path.exists(p): 
+
+            if not os.path.exists(p):
                 ax.axis("off")
                 continue
 
@@ -74,11 +74,11 @@ def run():
                 tas_var = 'tas' if 'tas' in ds else 'tmean'
                 T = ds[tas_var]
                 T = as_celsius(T)
-                
+
                 ann = wmean(T.resample(time="YS").mean())
                 years = ann["time"].dt.year.values
                 anom = (ann.values - base)
-                
+
                 im = ax.imshow(anom[np.newaxis, :], aspect="auto",
                              extent=[years.min()-0.5, years.max()+0.5, 0, 1],
                              cmap="RdYlBu_r", vmin=-2.5, vmax=+5.0)
@@ -89,10 +89,10 @@ def run():
                  ax.axis("off")
 
         axes[-1].set_xlabel("Año")
-        # Colorbar
+
         cax = fig.add_axes([0.92, 0.15, 0.015, 0.7])
         fig.colorbar(im, cax=cax, label="Anomalía de Temperatura (°C)")
-        
+
         plt.tight_layout(rect=[0, 0, 0.9, 1])
         output_file = settings.fig_path(output_dir, settings.OUT_CAT_SERIES_TEMP, "warming_stripes_anomalias.png")
         plt.savefig(output_file, dpi=180)

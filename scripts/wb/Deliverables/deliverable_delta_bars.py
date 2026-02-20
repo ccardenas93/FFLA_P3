@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 from organized.config import settings
 
-# Only future scenarios
+
 SCENS = [d for d in settings.DOMAINS if "historical" not in d]
 BASE = settings.BASE_PERIOD
 WINS = [("2021","2050"), ("2041","2070"), ("2071","2100")]
@@ -23,15 +23,15 @@ def mean_annual(path, t0, t1):
     try:
         ds = xr.open_dataset(path).sel(time=slice(f"{t0}-01-01", f"{t1}-12-31"))
         if ds.sizes.get("time",0) == 0: return None
-        
+
         if "wb_mmday" not in ds: return None
-        
-        # Correct: spatial average daily data, then sum to annual
-        daily_mean = wmean(ds["wb_mmday"])  # mm/day
-        y = daily_mean.resample(time="YS").sum("time")  # mm/year
+
+
+        daily_mean = wmean(ds["wb_mmday"])
+        y = daily_mean.resample(time="YS").sum("time")
         return float(y.mean("time"))
     except Exception as e:
-        # print(f"Error processing {path}: {e}")
+
         return None
 
 def run():
