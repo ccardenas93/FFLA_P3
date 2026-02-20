@@ -225,9 +225,30 @@ if mode == "Nueva Área de Interés (Subir SHP/GPKG)":
                                         file_path_full = os.path.join(root, file)
                                         arcname = os.path.relpath(file_path_full, output_dir)
                                         zf.write(file_path_full, arcname)
+
+                                # Include a self-contained HTML dashboard with base64 images
                                 dash_path = os.path.join(settings.OUTPUTS_DIR, "index.html")
                                 if os.path.exists(dash_path):
-                                    zf.write(dash_path, "dashboard_index.html")
+                                    with open(dash_path, 'r', encoding='utf-8') as df:
+                                        dash_html_raw = df.read()
+
+                                    def _embed_img(m):
+                                        rel = m.group(1)
+                                        abs_p = os.path.join(settings.OUTPUTS_DIR, rel)
+                                        if os.path.exists(abs_p):
+                                            ext = os.path.splitext(abs_p)[1].lower()
+                                            mimes = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif'}
+                                            with open(abs_p, 'rb') as imgf:
+                                                b = base64.b64encode(imgf.read()).decode('utf-8')
+                                            return f'src="data:{mimes.get(ext, "image/png")};base64,{b}"'
+                                        return m.group(0)
+
+                                    dash_self_contained = re.sub(
+                                        r'src="([^"]+\.(?:png|jpg|jpeg|gif|svg))"',
+                                        _embed_img, dash_html_raw
+                                    )
+                                    zf.writestr("dashboard.html", dash_self_contained)
+
                             zip_buffer.seek(0)
                             st.session_state["results_zip"] = zip_buffer.getvalue()
                             st.session_state["results_zip_name"] = f"resultados_{region_name}.zip"
