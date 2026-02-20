@@ -232,21 +232,30 @@ if mode == "Nueva Área de Interés (Subir SHP/GPKG)":
                                     with open(dash_path, 'r', encoding='utf-8') as df:
                                         dash_html_raw = df.read()
 
-                                    def _embed_img(m):
-                                        rel = m.group(1)
+                                    _zip_b64_cache = {}
+                                    def _zip_to_uri(rel):
+                                        if rel in _zip_b64_cache:
+                                            return _zip_b64_cache[rel]
                                         abs_p = os.path.join(settings.OUTPUTS_DIR, rel)
                                         if os.path.exists(abs_p):
                                             ext = os.path.splitext(abs_p)[1].lower()
                                             mimes = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif'}
                                             with open(abs_p, 'rb') as imgf:
                                                 b = base64.b64encode(imgf.read()).decode('utf-8')
-                                            return f'src="data:{mimes.get(ext, "image/png")};base64,{b}"'
-                                        return m.group(0)
+                                            _zip_b64_cache[rel] = f'data:{mimes.get(ext, "image/png")};base64,{b}'
+                                            return _zip_b64_cache[rel]
+                                        return None
 
-                                    dash_self_contained = re.sub(
-                                        r'src="([^"]+\.(?:png|jpg|jpeg|gif|svg))"',
-                                        _embed_img, dash_html_raw
-                                    )
+                                    def _zip_src(m):
+                                        uri = _zip_to_uri(m.group(1))
+                                        return f'src="{uri}"' if uri else m.group(0)
+
+                                    def _zip_lb(m):
+                                        uri = _zip_to_uri(m.group(1))
+                                        return f"openLightbox('{uri}')" if uri else m.group(0)
+
+                                    dash_self_contained = re.sub(r'src="([^"]+\.(?:png|jpg|jpeg|gif|svg))"', _zip_src, dash_html_raw)
+                                    dash_self_contained = re.sub(r"openLightbox\('([^']+\.(?:png|jpg|jpeg|gif|svg))'\)", _zip_lb, dash_self_contained)
                                     zf.writestr("dashboard.html", dash_self_contained)
 
                             zip_buffer.seek(0)
@@ -263,23 +272,36 @@ if mode == "Nueva Área de Interés (Subir SHP/GPKG)":
                             with open(dash_path, 'r', encoding='utf-8') as f:
                                 dashboard_html = f.read()
 
-                            def replace_img_with_base64(match):
-                                img_rel_path = match.group(1)
-                                img_abs_path = os.path.join(settings.OUTPUTS_DIR, img_rel_path)
-                                if os.path.exists(img_abs_path):
-                                    ext = os.path.splitext(img_abs_path)[1].lower()
+                            # Build a cache of path -> base64 data URI
+                            _b64_cache = {}
+                            def _to_data_uri(rel_path):
+                                if rel_path in _b64_cache:
+                                    return _b64_cache[rel_path]
+                                abs_p = os.path.join(settings.OUTPUTS_DIR, rel_path)
+                                if os.path.exists(abs_p):
+                                    ext = os.path.splitext(abs_p)[1].lower()
                                     mime_map = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.svg': 'image/svg+xml'}
                                     mime_type = mime_map.get(ext, 'image/png')
-                                    with open(img_abs_path, 'rb') as img_file:
+                                    with open(abs_p, 'rb') as img_file:
                                         b64 = base64.b64encode(img_file.read()).decode('utf-8')
-                                    return f'src="data:{mime_type};base64,{b64}"'
-                                return match.group(0)
+                                    _b64_cache[rel_path] = f'data:{mime_type};base64,{b64}'
+                                    return _b64_cache[rel_path]
+                                return None
 
-                            st.session_state["results_dashboard_html"] = re.sub(
-                                r'src="([^"]+\.(?:png|jpg|jpeg|gif|svg))"',
-                                replace_img_with_base64,
-                                dashboard_html
-                            )
+                            # Replace src="path.png"
+                            def _replace_src(match):
+                                uri = _to_data_uri(match.group(1))
+                                return f'src="{uri}"' if uri else match.group(0)
+
+                            # Replace openLightbox('path.png')
+                            def _replace_lightbox(match):
+                                uri = _to_data_uri(match.group(1))
+                                return f"openLightbox('{uri}')" if uri else match.group(0)
+
+                            dashboard_html = re.sub(r'src="([^"]+\.(?:png|jpg|jpeg|gif|svg))"', _replace_src, dashboard_html)
+                            dashboard_html = re.sub(r"openLightbox\('([^']+\.(?:png|jpg|jpeg|gif|svg))'\)", _replace_lightbox, dashboard_html)
+
+                            st.session_state["results_dashboard_html"] = dashboard_html
 
                 except Exception as e:
                     st.error(f"Error leyendo el archivo: {e}")
