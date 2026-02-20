@@ -1,3 +1,13 @@
+---
+title: FFLA Climate Analysis
+emoji: 🌍
+colorFrom: green
+colorTo: blue
+sdk: streamlit
+sdk_version: "1.32.0"
+app_file: app.py
+pinned: false
+---
 # Aplicación de Análisis Climático - FFLA
 
 Este repositorio contiene las herramientas necesarias para la ejecución del taller de análisis de cambio climático. Asegúrese de seguir las instrucciones detalladas a continuación para garantizar el correcto funcionamiento de la aplicación en su equipo.
