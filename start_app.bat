@@ -31,7 +31,16 @@ if not errorlevel 1 set "CONDA_EXE=mamba"
 
 echo [INFO] Usando: !CONDA_EXE!
 
-if exist "%VENV_NAME%\python.exe" goto conda_env_exists
+if exist "%VENV_NAME%\conda-meta" goto conda_env_exists
+if exist "%VENV_NAME%" (
+    echo [WARNING] Carpeta '%VENV_NAME%' existe pero NO es un entorno Conda valido.
+    echo [INFO] Eliminando carpeta conflictiva para reinstalar...
+    rmdir /s /q "%VENV_NAME%"
+    if exist "%VENV_NAME%" (
+        echo [ERROR] No se pudo eliminar '%VENV_NAME%'. Por favor borrela manualmente.
+        goto error_install
+    )
+)
 
 echo [INFO] Creando entorno Conda local...
 call !CONDA_EXE! create --prefix "./%VENV_NAME%" python=3.11 -y
