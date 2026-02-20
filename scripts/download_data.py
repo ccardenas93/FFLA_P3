@@ -84,8 +84,7 @@ def run(base_dir=None):
         os.makedirs(local_dir, exist_ok=True)
 
         for filename in files:
-            # FIX: Remote folder is "FDAT", but local is "FMPLPT"
-            # We map FMPLPT -> FDAT for the URL only
+
             remote_folder = folder.replace("FMPLPT", "FDAT")
             
             file_url = f"{BASE_URL}/{remote_folder}/{filename}"
