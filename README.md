@@ -19,7 +19,7 @@ Es necesario contar con un intérprete de Python instalado y correctamente confi
 **Para usuarios de Windows:**
 Se recomienda encarecidamente la instalación de **Miniforge** para gestionar las dependencias geospaciales de manera robusta.
 
-1.  Descargue el instalador **Miniforge3-Windows-x86_64.exe** desde el repositorio oficial: [https://github.com/conda-forge/miniforge](https://github.com/conda-forge/miniforge#miniforge3)
+1.  Descargue el instalador **Miniforge3-Windows-x86_64.exe** desde el repositorio oficial: [https://github.com/conda-forge/miniforge](https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe)
 2.  **IMPORTANTE**: Durante el proceso de instalación, es obligatorio **marcar** las siguientes casillas para asegurar que el sistema reconozca los comandos:
     *   [x] *Add Miniforge3 to my PATH environment variable* (Es posible que el instalador muestre una advertencia en rojo; ignórela y proceda a marcar la casilla).
     *   [x] *Register Miniforge3 as my default Python 3.12*
