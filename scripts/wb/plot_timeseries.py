@@ -5,7 +5,7 @@ import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
 
-# Add project root to path to import config
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 
 from organized.config import settings
@@ -50,9 +50,9 @@ def run():
     print("\n" + "="*60)
     print("GENERANDO SERIES TEMPORALES (ESPAÑOL)")
     print("="*60)
-    
+
     palette = settings.PALETTE
-    
+
     out_cat = settings.OUT_CAT_SERIES_HIDRO
     file_map = {"P": "precipitacion_anual.png", "PET": "evapotranspiracion_anual.png", "WB": "balance_hidrico_anual.png"}
 

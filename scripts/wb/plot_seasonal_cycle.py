@@ -5,7 +5,7 @@ import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
 
-# Add project root to path
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 
 from organized.config import settings
@@ -13,8 +13,8 @@ from organized.config import settings
 DOMAINS_FUT = [d for d in settings.DOMAINS if 'historical' not in d]
 
 BASE = settings.BASE_PERIOD
-# We need 2071-2100 for the "future" plot
-FUT = ("2071", "2100") 
+
+FUT = ("2071", "2100")
 
 def wlat(lat): return xr.DataArray(np.cos(np.deg2rad(lat)), coords={'lat': lat}, dims=['lat'])
 def wmean(da): return da.weighted(wlat(da['lat'])).mean(('lat','lon'))
@@ -25,13 +25,13 @@ def clim_month(data_dir, domain, t0, t1):
     if not os.path.exists(p): return None
     try:
         ds = xr.open_dataset(p).sel(time=slice(f'{t0}-01-01', f'{t1}-12-31'))
-        # Daily series spatially averaged (mm/day), then monthly sum (mm/month)
+
         mon = xr.Dataset({
             'P'  : wmean(ds['p_mmday']).resample(time='MS').sum(),
             'PET': wmean(ds['pet_mmday']).resample(time='MS').sum(),
             'WB' : wmean(ds['wb_mmday']).resample(time='MS').sum(),
         })
-        # Monthly climatology
+
         clim = mon.groupby('time.month').mean('time')
         return {k:clim[k].values for k in ['P','PET','WB']}
     except Exception as e:
@@ -42,7 +42,7 @@ def run():
     print("\n" + "="*60)
     print("GENERATING SEASONAL CYCLE PLOTS")
     print("="*60)
-    
+
     palette = settings.PALETTE
 
     out_cat = settings.OUT_CAT_CLIMATOLOGIA_COMP

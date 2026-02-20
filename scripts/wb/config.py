@@ -1,5 +1,5 @@
-# Self-contained config: all paths relative to repo (organized/).
-# Used by legacy scripts; prefer organized.config.settings elsewhere.
+
+
 import os
 import sys
 

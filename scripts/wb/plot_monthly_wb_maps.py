@@ -5,7 +5,7 @@ import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
 
-# --- PROJ/GDAL setup (portable: env or Python prefix for exe/bundled) ---
+
 _prefix = os.environ.get("CONDA_PREFIX") or getattr(sys, "prefix", "")
 if _prefix:
     os.environ.setdefault("PROJ_LIB", os.path.join(_prefix, "share", "proj"))
@@ -31,7 +31,7 @@ VENTANAS = {
     "Tardío_2071-2100": ("2071","2100"),
 }
 
-# Translate months to Spanish
+
 MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
 
 _GEO_CACHE={}
@@ -54,17 +54,17 @@ def clim_mensual_wb(data_dir, dominio, t0, t1):
         p = os.path.join(data_dir, dominio, "wb.nc")
     if not os.path.exists(p):
         return None
-    
+
     ds = xr.open_dataset(p)
     if ("time" not in ds.dims) and ("time" not in ds.coords): return None
     ds = ds.sel(time=slice(f"{t0}-01-01", f"{t1}-12-31"))
     if ds.sizes.get("time",0) == 0: return None
-    
+
     if "wb_mmday" not in ds: return None
-    
-    # mm/mes desde mm/día
+
+
     mon_sum = ds["wb_mmday"].resample(time="MS").sum("time")
-    clim = mon_sum.groupby("time.month").mean("time")  # (month,lat,lon)
+    clim = mon_sum.groupby("time.month").mean("time")
     return clim
 
 def limites_comunes(*arrs, default=(-300,300)):
@@ -91,7 +91,7 @@ def dibujar_shp(ax, shp_path):
         pass
 
 def panel_3x4(lat, lon, cubo, titulo, out_png, shp_path, vmin=None, vmax=None, cmap="RdBu"):
-    # Figura más ancha; cbar externo muy a la derecha (sin solape)
+
     fig, axes = plt.subplots(3,4, figsize=(16.5,8.0), sharex=True, sharey=True)
     axes = axes.ravel()
     last_im=None
@@ -104,9 +104,9 @@ def panel_3x4(lat, lon, cubo, titulo, out_png, shp_path, vmin=None, vmax=None, c
         else:
             ax.text(0.5,0.5,"sin datos",ha="center",va="center",transform=ax.transAxes)
         ax.set_title(MESES[m-1], fontsize=10); ax.grid(True, alpha=.2)
-    # barra de color externa (más a la derecha)
+
     if last_im is not None:
-        cax = fig.add_axes([0.985, 0.15, 0.02, 0.7])  # x=0.985 -> aún más a la derecha
+        cax = fig.add_axes([0.985, 0.15, 0.02, 0.7])
         cb  = fig.colorbar(last_im, cax=cax); cb.set_label("Balance Hídrico (mm/mes)")
     fig.suptitle(titulo, fontsize=14)
     for ax in axes[-4:]: ax.set_xlabel("Longitud")

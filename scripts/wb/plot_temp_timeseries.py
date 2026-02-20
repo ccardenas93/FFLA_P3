@@ -5,7 +5,7 @@ import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
 
-# Add project root to path to import config
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 
 from organized.config import settings
@@ -15,7 +15,7 @@ PERIOD_END = settings.PERIOD_END
 PALETTE = settings.PALETTE
 DOMAINS = settings.DOMAINS
 
-# === Utilidades ===
+
 def roll_nanmean(y, k=11, min_frac=0.6):
     """Media móvil robusta con NaNs; ventana impar k."""
     y = np.asarray(y, float)
@@ -57,24 +57,24 @@ def as_celsius(da):
     da = apply_scale_offset(da)
     u = str(da.attrs.get("units", "")).lower()
 
-    # Caso común por metadatos
+
     if ("k" in u) and ("c" not in u):
         return da - 273.15
     if "c" in u:
         return da
 
-    # Heurística por rango
+
     finite = da.where(np.isfinite(da), drop=True)
     try:
         vmin = float(finite.min())
         vmax = float(finite.max())
     except Exception:
-        # Último recurso: suponer K si falla todo
+
         return da - 273.15
 
     if (vmax > 100.0) or (vmin < -50.0):
         return da - 273.15
-    return da  # ya parece °C
+    return da
 
 def run():
     print("\n" + "="*60)
@@ -108,18 +108,18 @@ def run():
 
                 var_in_file = var
                 if var not in ds:
-                    # Fallback variable names
+
                     if var == 'tas' and 'tmean' in ds: var_in_file = 'tmean'
                     elif var == 'tasmin' and 'tmin' in ds: var_in_file = 'tmin'
                     elif var == 'tasmax' and 'tmax' in ds: var_in_file = 'tmax'
-                
+
                 if var_in_file not in ds:
                     continue
 
                 T = as_celsius(ds[var_in_file])
 
-                # medias anuales (°C)
-                ann = T.resample(time="YS").mean()  # (time, lat, lon)
+
+                ann = T.resample(time="YS").mean()
                 if ann.sizes.get("time", 0) == 0:
                     continue
 
@@ -128,19 +128,19 @@ def run():
                 if sel.sum() == 0:
                     continue
 
-                y = wmean(ann).values[sel]  # serie anual ponderada (°C)
+                y = wmean(ann).values[sel]
                 yrs = years[sel]
 
-                # ventana de suavizado ~ proporcional a la longitud del período
+
                 win = min(11, max(3, ((int(yrs[-1]) - int(yrs[0]) + 1) // 15) * 2 + 1))
                 smooth = roll_nanmean(y, k=win)
 
                 c = PALETTE.get(dom, "tab:blue")
                 plt.plot(yrs, y, lw=.8, alpha=.5, color=c)
-                
+
                 dom_label = dom.replace("_ecuador","")
                 if dom_label == "historical": dom_label = "Histórico"
-                
+
                 plt.plot(yrs, smooth, lw=2, color=c, label=dom_label)
                 drew = True
 

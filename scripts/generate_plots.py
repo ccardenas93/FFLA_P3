@@ -7,12 +7,12 @@ Calls individual plotting scripts refactored in organized/scripts/wb/
 import sys
 import os
 
-# Add project root to path
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from organized.scripts.wb import (
-    plot_timeseries, 
-    plot_seasonal_cycle, 
+    plot_timeseries,
+    plot_seasonal_cycle,
     deliverable_key_numbers,
     plot_temp_timeseries,
     plot_warming_stripes,
@@ -34,7 +34,7 @@ def run(region_codes=None):
     if region_codes:
         print(f"Targeting regions: {region_codes}")
     print("="*80)
-    
+
     modules_to_run = [
         (plot_timeseries, "Standard Time Series"),
         (plot_temp_timeseries, "Temperature Time Series"),
@@ -54,23 +54,23 @@ def run(region_codes=None):
     for module, name in modules_to_run:
         try:
             print(f"\nRunning: {name}...")
-            # Inspect argument count to see if it accepts region_codes (simple duck typing or try/except)
-            # Most of these scripts likely just iterate settings.REGIONS internally.
-            # We need to verify if they accept arguments. 
-            # If they don't, we might need to rely on them reading settings.REGIONS, 
-            # OR we can modify settings.REGIONS temporarily?
-            # Modifying settings.REGIONS globally is safer if we just want to run for one region.
-            
-            # Since we are running in the same process as app.py, modifying settings.REGIONS 
-            # might be side-effect heavy if not reverted. 
-            # BUT, for this run, we ONLY care about the active region.
-            # So passing it is better.
-            
-            # Let's assume we will update the sub-modules to accept 'region_codes'. 
-            # For now, let's try calling with kwargs if possible, or just run().
-            # If we don't update them, they will run for all regions.
-            # CRITICAL: We need to update the sub-modules too.
-            # For this step, I will pass the argument. I will proceed to update sub-modules next.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             from inspect import signature
             sig = signature(module.run)
             if 'region_codes' in sig.parameters:
@@ -79,8 +79,8 @@ def run(region_codes=None):
                 module.run()
         except Exception as e:
             print(f"❌ Error in {name}: {e}")
-            # import traceback
-            # traceback.print_exc()
+
+
 
     print("\n" + "="*80)
     print("PLOTTING COMPLETED")

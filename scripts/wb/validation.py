@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-# Self-contained: use repo config from any cwd
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 from organized.config import settings
 DERIVED = settings.DERIVED_DIR
@@ -17,18 +17,18 @@ def ok(msg): print("✅",msg)
 
 def check_open(path,var):
     if not os.path.exists(path): fail(f"missing file: {path}"); return None
-    try: ds=xr.open_dataset(path); 
+    try: ds=xr.open_dataset(path);
     except Exception as e: fail(f"cannot open {path}: {e}"); return None
     if var not in ds: fail(f"{os.path.basename(path)} missing var '{var}'"); return None
     return ds
 
 def check_coords(ds,dom,var):
-    cds=set(ds.coords); 
+    cds=set(ds.coords);
     for c in ['time','lat','lon']:
         if c not in cds: fail(f"{dom}:{var} missing coord '{c}'")
     if 'lat' in ds and not np.all(np.diff(ds['lat'])>0): fail(f"{dom}:{var} lat not strictly increasing")
     if 'lon' in ds and not np.all(np.diff(ds['lon'])>0): fail(f"{dom}:{var} lon not strictly increasing")
-    # Ecuador bbox guard (loose)
+
     if 'lat' in ds and (ds.lat.min()< -6 or ds.lat.max()> 3): warn(f"{dom}:{var} lat extent unexpected: {float(ds.lat.min())}..{float(ds.lat.max())}")
     if 'lon' in ds and (ds.lon.min()< -82 or ds.lon.max()>-74): warn(f"{dom}:{var} lon extent unexpected: {float(ds.lon.min())}..{float(ds.lon.max())}")
 
@@ -59,22 +59,22 @@ def validate_domain(dom):
     paths={v:f"{pdir}/{v}_{dom}.nc" for v in ['pr','tas','tasmin','tasmax']}
     dsets={v:check_open(paths[v],v) for v in paths}
     if any(ds is None for ds in dsets.values()): return
-    # coords & time & units per var
+
     for v,ds in dsets.items():
         check_coords(ds,dom,v); check_time(ds,dom,v); check_units(ds,dom,v); nan_rate(ds,dom,v)
-    # grid equality
+
     lats={v: dsets[v]['lat'].values for v in dsets}
     lons={v: dsets[v]['lon'].values for v in dsets}
     for v in ['tas','tasmin','tasmax']:
         if not arrays_equal(lats['pr'],lats[v]): fail(f"{dom}: lat grid pr vs {v} differ")
         if not arrays_equal(lons['pr'],lons[v]): fail(f"{dom}: lon grid pr vs {v} differ")
-    # time alignment
+
     idx={v: pd.Index(pd.to_datetime(dsets[v]['time'].values)) for v in dsets}
     inter=idx['pr'].intersection(idx['tas']).intersection(idx['tasmin']).intersection(idx['tasmax'])
     for v in idx:
         miss=len(idx[v])-len(inter)
         if miss!=0: warn(f"{dom}:{v} has {miss} timestamp(s) not shared by all")
-    # physical consistency
+
     try:
         tmin=dsets['tasmin']['tasmin']; t=dsets['tas']['tas']; tmax=dsets['tasmax']['tasmax']
         bad_min=((t<tmin)-False).sum().item()

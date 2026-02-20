@@ -5,7 +5,7 @@ import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
 
-# --- PROJ/GDAL setup (portable: env or Python prefix for exe/bundled) ---
+
 _prefix = os.environ.get("CONDA_PREFIX") or getattr(sys, "prefix", "")
 if _prefix:
     os.environ.setdefault("PROJ_LIB", os.path.join(_prefix, "share", "proj"))
@@ -56,7 +56,7 @@ def run():
     for region_code, region_info in settings.REGIONS.items():
         output_dir = settings.get_region_output_dir(region_code)
         print(f"Processing region: {region_info['name']} ({output_dir})")
-        
+
         shp = region_info.get("shapefile")
         geo = None
         if shp and os.path.exists(shp):
@@ -69,7 +69,7 @@ def run():
         pbase = os.path.join(output_dir, "historical_ecuador", "wb_historical_ecuador.nc")
         if not os.path.exists(pbase):
             pbase = os.path.join(output_dir, "historical_ecuador", "wb.nc")
-        
+
         if not os.path.exists(pbase):
             print("  ⚠️ Missing baseline data"); continue
 
@@ -83,7 +83,7 @@ def run():
         lo, hi = np.nanpercentile(both, [2, 98])
         vm = float(np.ceil(max(abs(lo), abs(hi), 100) / 100) * 100)
 
-        # --- Base ---
+
         fig, axs = plt.subplots(1, 2, figsize=(12, 4), sharex=True, sharey=True)
         im0 = pm(axs[0], lat, lon, wb_sec.values, f"Trimestre más seco ({etiqueta_seco}) | 1981–2010", -vm, vm, "bwr_r")
         im1 = pm(axs[1], lat, lon, wb_hum.values, f"Trimestre más húmedo ({etiqueta_hum}) | 1981–2010", -vm, vm, "bwr_r")
@@ -103,7 +103,7 @@ def run():
             if not os.path.exists(pfut):
                 pfut = os.path.join(output_dir, scen, "wb.nc")
             if not os.path.exists(pfut): continue
-            
+
             dsf = xr.open_dataset(pfut).sel(time=slice(f"{FUT_WIN[0]}-01-01", f"{FUT_WIN[1]}-12-31"))
             mon = dsf["wb_mmday"].resample(time="MS").sum("time").groupby("time.month").mean("time")
 

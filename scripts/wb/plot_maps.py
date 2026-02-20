@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 from organized.config import settings
 
-# Self-contained: use repo regions
+
 TOP_ROOTS = [info["path"] for info in settings.REGIONS.values()]
 DOMAINS_FUT = [d for d in settings.DOMAINS if "historical" not in d]
 

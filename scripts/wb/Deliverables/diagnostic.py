@@ -1,5 +1,5 @@
-# ==== DIAGNÓSTICO DE TEMPERATURA (pegar al final del script o correr solo) ====
-# Self-contained: uses repo config.
+
+
 import os
 import sys
 import numpy as np
@@ -24,7 +24,7 @@ def guess_units_and_convert(tas):
     """Devuelve (tas_en_C, etiqueta_conversion). Heurística robusta."""
     u = str(tas.attrs.get("units","")).lower()
 
-    # estadísticos crudos (sin convertir)
+
     raw_min = float(tas.min().values)
     raw_max = float(tas.max().values)
     raw_med = float(tas.median().values)
@@ -32,24 +32,24 @@ def guess_units_and_convert(tas):
     label = "desconocido"
     tasC = tas
 
-    # 1) metadatos dicen Kelvin
+
     if ("k" in u) and ("c" not in u):
         tasC = tas - 273.15
         label = "K→°C por metadatos"
-    # 2) metadatos dicen °C
+
     elif "c" in u:
         tasC = tas
         label = "°C por metadatos"
     else:
-        # 3) heurística por magnitud/rango
-        if raw_med > 200:             # típico Kelvin o °C*10 muy alto
-            # probar Kelvin primero
+
+        if raw_med > 200:
+
             tmp = tas - 273.15
             tmin = float(tmp.min()); tmax = float(tmp.max())
             if -60 <= tmin <= 60 and -60 <= tmax <= 60:
                 tasC = tmp; label = "K→°C por heurística"
             else:
-                # probar °C*10
+
                 tmp2 = tas/10.0
                 tmin2 = float(tmp2.min()); tmax2 = float(tmp2.max())
                 if -60 <= tmin2 <= 60 and -60 <= tmax2 <= 60:
@@ -57,7 +57,7 @@ def guess_units_and_convert(tas):
                 else:
                     label = "¡Rango atípico! (revisar)"
         else:
-            # puede ser °C o °C*10 “bajo”
+
             if raw_max > 100:
                 tmp2 = tas/10.0
                 tmin2 = float(tmp2.min()); tmax2 = float(tmp2.max())
@@ -87,21 +87,21 @@ def diag_one(root, dom, t0, t1):
     if tas.sizes.get("time",0)==0:
         return f"[{root.split('/')[-1]}] {dom}: ventana {t0}-{t1} vacía"
 
-    # ver si xarray decodificó escala/offset
+
     sf = tas.encoding.get("scale_factor", None)
     ao = tas.encoding.get("add_offset", None)
 
-    # estadísticos crudos
+
     raw_min, raw_max = float(tas.min()), float(tas.max())
 
-    # aplicar heurística robusta
+
     tasC, how, (rmin, rmax, rmed, units) = guess_units_and_convert(tas)
 
-    # medias anuales (°C)
+
     tasC_yr = tasC.resample(time="YS").mean("time")
     meanC = float(area_mean(tasC_yr).mean("time"))
 
-    # diagnóstico short
+
     msg = []
     msg.append(f"[{root.split('/')[-1]}] {dom} {t0}-{t1}")
     msg.append(f"  units='{units}', scale_factor={sf}, add_offset={ao}")
@@ -112,7 +112,7 @@ def diag_one(root, dom, t0, t1):
 
 print("\n=== DIAGNÓSTICO DE TEMPERATURA ===")
 for ROOT in ROOTS:
-    # base y tardío de cada dominio
+
     print(f"\n-- {ROOT.split('/')[-1]} --")
     for dom in DOMS:
         print(diag_one(ROOT, dom, *BASE))

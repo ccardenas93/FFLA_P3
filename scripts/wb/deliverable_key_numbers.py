@@ -22,7 +22,7 @@ WIN_LABEL = {
     ("2041", "2070"): "Medio (2041–2070)",
     ("2071", "2100"): "Tardío (2071–2100)",
 }
-DRY_THRESH_MM = 1.0  # dry day if P < 1 mm/day
+DRY_THRESH_MM = 1.0
 
 def area_mean(da):
     w = np.cos(np.deg2rad(da["lat"]))
@@ -167,8 +167,8 @@ def run():
         print(f"Processing region: {region_name} ({output_dir})")
 
         tri = seasonal_windows_from_base(output_dir)
-        
-        # Data structure for JSON
+
+
         data_export = {
             "region": region_name,
             "base_period": f"{BASE[0]}-{BASE[1]}",
@@ -181,7 +181,7 @@ def run():
             print("  ⚠️ No historical data found.")
             continue
 
-        # --- BASELINE CALCS ---
+
         Pm, Psd = ann_stats(base_ds["P"])
         Em, Esd = ann_stats(base_ds["PET"])
         WBm, Wbsd = ann_stats(base_ds["WB"])
@@ -189,7 +189,7 @@ def run():
         dry_days_base, cdd_base = dry_day_metrics(base_ds["P"])
         tas_base = load_tas_daily(input_dir, HIST, *BASE)
         Tm_base = float(tas_base.resample(time="YS").mean("time").mean()) if tas_base is not None else np.nan
-        
+
         data_export["baseline"] = {
             "P_annual": {"mean": round(Pm), "std": round(Psd)},
             "PET_annual": {"mean": round(Em), "std": round(Esd)},
@@ -200,7 +200,7 @@ def run():
             "Temp": round(Tm_base, 1) if not np.isnan(Tm_base) else None
         }
 
-        # Write TXT
+
         with open(out_txt, "w", encoding="utf-8") as f:
             write_line(f, f"# NÚMEROS CLAVE DE CAMBIO CLIMÁTICO — {region_name}")
             write_line(f, f"Período base: {BASE[0]}–{BASE[1]}")
@@ -223,7 +223,7 @@ def run():
                     "wet_quarter": wet_lbl,
                     "dry_quarter": dry_lbl
                 }
-                
+
                 def tri_sum(da):
                     mon = da.resample(time="MS").sum("time")
                     g = mon.groupby("time.month")
@@ -233,21 +233,21 @@ def run():
                 P_wet, P_dry = tri_sum(base_ds["P"])
                 PET_wet, PET_dry = tri_sum(base_ds["PET"])
                 WB_wet, WB_dry = tri_sum(base_ds["WB"])
-                
+
                 write_line(f, "## Estacionalidad — Línea base (trimestres)")
                 write_line(f, f"• Trimestre más húmedo (base): {wet_lbl} | P={P_wet:,.0f} mm, PET={PET_wet:,.0f} mm, WB={WB_wet:,.0f} mm")
                 write_line(f, f"• Trimestre más seco   (base): {dry_lbl} | P={P_dry:,.0f} mm, PET={PET_dry:,.0f} mm, WB={WB_dry:,.0f} mm")
                 write_line(f, "")
-            
+
             write_line(f, "## Cambios proyectados vs 1981–2010")
-            
-            # --- PROJECTIONS ---
+
+
             for scen in SCENS:
                 scen_key = scen.replace('_ecuador', '')
                 data_export["projections"][scen_key] = {}
-                
+
                 write_line(f, f"### {scen_key.upper()}")
-                
+
                 for (t0, t1) in WINS:
                     win_key = f"{t0}-{t1}"
                     dsf = load_wb_daily(output_dir, scen, t0, t1)
@@ -258,15 +258,15 @@ def run():
                     Pm_f = ann_mean(dsf["P"])
                     Em_f = ann_mean(dsf["PET"])
                     WBm_f = ann_mean(dsf["WB"])
-                    
+
                     dP = Pm_f - Pm
                     dE = Em_f - Em
                     dWB = WBm_f - WBm
-                    
+
                     rP = (dP / Pm * 100.0) if Pm != 0 else np.nan
                     rE = (dE / Em * 100.0) if Em != 0 else np.nan
                     rWB = (dWB / WBm * 100.0) if WBm != 0 else np.nan
-                    
+
                     AI_f = ai_from_series(dsf["P"], dsf["PET"])
                     dAI = AI_f - AI_base
 
@@ -280,7 +280,7 @@ def run():
                         Tm_f = float(tas_f.resample(time="YS").mean("time").mean())
                     dT = (Tm_f - Tm_base) if (not np.isnan(Tm_f) and not np.isnan(Tm_base)) else np.nan
 
-                    # Save to JSON
+
                     data_export["projections"][scen_key][win_key] = {
                         "delta_P_mm": round(dP),
                         "delta_P_pct": round(rP, 1),
@@ -300,13 +300,13 @@ def run():
                     write_line(f, f"   – Δ días secos/año = {ddelta:+.0f} | Δ CDD = {cddelta:+.0f} días")
                     if not np.isnan(dT):
                         write_line(f, f"   – ΔT media anual = {dT:+.1f} °C")
-                
+
                 write_line(f, "")
-        
-        # Dump JSON
+
+
         with open(out_json, "w", encoding="utf-8") as f:
             json.dump(data_export, f, indent=2, ensure_ascii=False)
-            
+
         print(f"  ✔ Summary written to: {out_txt}")
         print(f"  ✔ JSON data written to: {out_json}")
 

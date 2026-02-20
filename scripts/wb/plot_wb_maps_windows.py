@@ -5,7 +5,7 @@ import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
 
-# --- PROJ/GDAL setup (portable: env or Python prefix for exe/bundled) ---
+
 _prefix = os.environ.get("CONDA_PREFIX") or getattr(sys, "prefix", "")
 if _prefix:
     os.environ.setdefault("PROJ_LIB", os.path.join(_prefix, "share", "proj"))
@@ -51,7 +51,7 @@ def mean_wb(data_dir, domain, t0, t1):
     if not os.path.exists(p): return None
     ds = xr.open_dataset(p).sel(time=slice(f"{t0}-01-01", f"{t1}-12-31"))
     if ds.sizes.get("time", 0) == 0: return None
-    # mm/day -> mm/year
+
     if "wb_mmday" not in ds: return None
     return (ds["wb_mmday"].mean("time")*365.0)
 
@@ -73,18 +73,18 @@ def run():
         print(f"Procesando región: {region_info['name']} ({output_dir})")
 
         base = mean_wb(output_dir, "historical_ecuador", *WIN["Base (1981–2010)"])
-        if base is None: 
+        if base is None:
              print(f"  ⚠️ Sin datos de línea base para {region_info['name']}")
              continue
         lat, lon = base["lat"].values, base["lon"].values
-        
+
         shp_path = region_info.get("shapefile")
         geo = cargar_shp(shp_path) if shp_path else None
 
         base_vals = base.values
         base_max = np.nanmax(np.abs(base_vals))
-        base_lim = np.ceil(base_max / 100) * 100  
-        
+        base_lim = np.ceil(base_max / 100) * 100
+
         all_deltas = []
         for scen in SCENS:
             for label, (t0, t1) in WIN.items():
@@ -93,12 +93,12 @@ def run():
                 if fut is not None:
                     d = (fut - base).values
                     all_deltas.append(d.ravel())
-        
+
         if all_deltas:
             all_deltas = np.concatenate([x[np.isfinite(x)] for x in all_deltas if np.any(np.isfinite(x))])
             delta_min = np.nanmin(all_deltas)
             delta_max = np.nanmax(all_deltas)
-            
+
             if delta_max <= 0:
                 vmin_delta = np.floor(delta_min / 100) * 100
                 vmax_delta = 0
@@ -115,7 +115,7 @@ def run():
         else:
             vmin_delta, vmax_delta = -800, 800
             cmap_delta = "RdBu"
-        
+
         fig, axes = plt.subplots(len(SCENS), len(WIN), figsize=(16, 8), sharex=True, sharey=True)
         if len(SCENS) == 1: axes = axes[np.newaxis, :]
 
@@ -128,19 +128,19 @@ def run():
                         geo.boundary.plot(ax=ax, edgecolor="k", linewidth=0.9, zorder=5)
                     if i == 0: fig.colorbar(m, ax=ax, fraction=0.046, pad=0.04)
                     continue
-                
+
                 fut = mean_wb(output_dir, scen, t0, t1)
                 if fut is None:
                     ax.set_title(label + " (sin datos)")
                     ax.axis("off")
                     continue
-                
+
                 d = (fut - base).values
                 m = pmesh(ax, lat, lon, d, f"{scen.replace('_ecuador','').upper()} Δ{t0}–{t1}", cmap=cmap_delta, vmin=vmin_delta, vmax=vmax_delta)
                 if geo is not None:
                     geo.boundary.plot(ax=ax, edgecolor="k", linewidth=0.9, zorder=5)
                 fig.colorbar(m, ax=ax, fraction=0.046, pad=0.04)
-        
+
         plt.tight_layout()
         output_file = settings.fig_path(output_dir, settings.OUT_CAT_MATRIZ_VENTANAS, "matriz_WB_escenarios_ventanas.png")
         plt.savefig(output_file, dpi=180)
