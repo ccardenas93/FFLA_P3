@@ -215,15 +215,74 @@ if mode == "Nueva Área de Interés (Subir SHP/GPKG)":
 
 
                         st.write("---")
-                        st.write("#### Resultados Generados")
+                        st.write("#### 📥 Descargar Resultados")
+
+                        # --- ZIP download of all results ---
                         if os.path.exists(output_dir):
-                            st.write(f"Carpeta: {output_dir}")
+                            import io
+                            import base64
+                            import re
 
+                            zip_buffer = io.BytesIO()
+                            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+                                for root, dirs, files in os.walk(output_dir):
+                                    for file in files:
+                                        file_path_full = os.path.join(root, file)
+                                        arcname = os.path.relpath(file_path_full, output_dir)
+                                        zf.write(file_path_full, arcname)
+                                # Also include index.html if it exists
+                                dash_path = os.path.join(settings.OUTPUTS_DIR, "index.html")
+                                if os.path.exists(dash_path):
+                                    zf.write(dash_path, "dashboard_index.html")
+                            zip_buffer.seek(0)
 
+                            st.download_button(
+                                label="📦 Descargar todos los resultados (.zip)",
+                                data=zip_buffer,
+                                file_name=f"resultados_{region_name}.zip",
+                                mime="application/zip"
+                            )
 
+                        # --- Word doc download ---
+                        if 'doc_path' in dir() and doc_path and os.path.exists(doc_path):
+                            with open(doc_path, "rb") as doc_file:
+                                st.download_button(
+                                    label="📄 Descargar Reporte Word (.docx)",
+                                    data=doc_file.read(),
+                                    file_name=os.path.basename(doc_path),
+                                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                )
 
-                            dash_path = os.path.join(settings.OUTPUTS_DIR, "index.html")
-                            st.markdown(f"**[Abrir Dashboard HTML]({dash_path})** (Click derecho -> Abrir localmente)")
+                        # --- Embedded HTML Dashboard ---
+                        dash_path = os.path.join(settings.OUTPUTS_DIR, "index.html")
+                        if os.path.exists(dash_path):
+                            st.write("---")
+                            st.write("#### 🖥️ Dashboard Interactivo")
+
+                            with open(dash_path, 'r', encoding='utf-8') as f:
+                                dashboard_html = f.read()
+
+                            # Convert relative image paths to base64 inline
+                            def replace_img_with_base64(match):
+                                img_rel_path = match.group(1)
+                                img_abs_path = os.path.join(settings.OUTPUTS_DIR, img_rel_path)
+                                if os.path.exists(img_abs_path):
+                                    ext = os.path.splitext(img_abs_path)[1].lower()
+                                    mime_map = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.svg': 'image/svg+xml'}
+                                    mime_type = mime_map.get(ext, 'image/png')
+                                    with open(img_abs_path, 'rb') as img_file:
+                                        b64 = base64.b64encode(img_file.read()).decode('utf-8')
+                                    return f'src="data:{mime_type};base64,{b64}"'
+                                return match.group(0)
+
+                            dashboard_html = re.sub(
+                                r'src="([^"]+\.(?:png|jpg|jpeg|gif|svg))"',
+                                replace_img_with_base64,
+                                dashboard_html
+                            )
+
+                            import streamlit.components.v1 as components
+                            components.html(dashboard_html, height=900, scrolling=True)
 
                 except Exception as e:
                     st.error(f"Error leyendo el archivo: {e}")
