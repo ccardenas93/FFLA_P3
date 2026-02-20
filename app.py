@@ -93,7 +93,8 @@ if mode == "Nueva Área de Interés (Subir SHP/GPKG)":
                     centroid = gdf_proj.geometry.centroid.to_crs(epsg=4326)
                     m = folium.Map(location=[centroid.y.mean(), centroid.x.mean()], zoom_start=8)
                     folium.GeoJson(gdf).add_to(m)
-                    st_folium(m, width=700, height=400)
+                    # Use returned_objects=[] so streamlit-folium doesn't try to JSON serialize GeoPandas objects on interaction
+                    st_folium(m, width=700, height=400, returned_objects=[])
 
                     col1, col2 = st.columns(2)
                     with col1:
