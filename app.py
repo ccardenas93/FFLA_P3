@@ -272,7 +272,7 @@ if mode == "Nueva Área de Interés (Subir SHP/GPKG)":
         st.write("---")
         st.write("#### 📥 Descargar Resultados")
 
-        col_dl1, col_dl2 = st.columns(2)
+        col_dl1, col_dl2, col_dl3 = st.columns([2, 2, 1])
         with col_dl1:
             st.download_button(
                 label="📦 Descargar todos los resultados (.zip)",
@@ -288,6 +288,11 @@ if mode == "Nueva Área de Interés (Subir SHP/GPKG)":
                     file_name=st.session_state.get("results_docx_name", "reporte.docx"),
                     mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 )
+        with col_dl3:
+            if st.button("🔄 Reiniciar", type="secondary"):
+                for key in ["results_zip", "results_zip_name", "results_docx", "results_docx_name", "results_dashboard_html"]:
+                    st.session_state.pop(key, None)
+                st.rerun()
 
     if "results_dashboard_html" in st.session_state:
         st.write("---")
