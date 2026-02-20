@@ -69,8 +69,32 @@ def prepare_logo_assets():
     return logo_paths
 
 
-def generate_html_content():
+def generate_html_content(data_source=None):
     logo_assets = prepare_logo_assets()
+
+    # Filter logos based on data_source
+    active_logo_assets = []
+    for rel_path, alt in logo_assets:
+        filename = os.path.basename(rel_path)
+        
+        # Always include FFLA
+        if "FFLA" in filename:
+            active_logo_assets.append((rel_path, alt))
+            continue
+            
+        if data_source == "FODESNA":
+            if "fodesna" in filename.lower():
+                active_logo_assets.append((rel_path, alt))
+        elif data_source == "FMPLPT":
+            if "FMPLPT" in filename:
+                active_logo_assets.append((rel_path, alt))
+        else:
+            # If no source specified, include all available logos (legacy behavior)
+            active_logo_assets.append((rel_path, alt))
+    
+    # Sort to ensure FFLA is first or last? User didn't specify order, but FFLA is usually last in lists?
+    # Actually list order from prepare_logo_assets depends on LOGO_FILES order.
+    # LOGO_FILES has FFLA first. So active_logo_assets will have it first.
 
     html = """<!DOCTYPE html>
 <html lang="es">
@@ -519,7 +543,7 @@ def generate_html_content():
         </div>
         <div class="logo-strip">
 """
-    for logo_path, logo_alt in logo_assets:
+    for logo_path, logo_alt in active_logo_assets:
         html += f'            <img src="{logo_path}" alt="{logo_alt}">\n'
 
     html += """        </div>
@@ -991,14 +1015,15 @@ def export_static_site():
 
     print("🚀 Sitio estático publicado en GitHub.")
 
-def run(deploy_to_github=False):
+def run(deploy_to_github=False, data_source=None):
     """
     Generate dashboard HTML and optionally deploy to GitHub repo.
     Args:
         deploy_to_github: If True, copies outputs to FFLA_P1 repo and runs git commit/push.
                           Set to True only when you want to publish; leave False for local/exe use.
+        data_source: 'FODESNA' or 'FMPLPT' to filter logos.
     """
-    generate_html_content()
+    generate_html_content(data_source)
     if deploy_to_github or os.environ.get("DEPLOY_DASHBOARD", "").lower() in ("1", "true", "yes"):
         export_static_site()
     else:

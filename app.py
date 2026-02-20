@@ -190,7 +190,7 @@ if mode == "Nueva Área de Interés (Subir SHP/GPKG)":
 
                                 status_text.text("Generando Reporte y Dashboard...")
 
-                                generate_dashboard.run()
+                                generate_dashboard.run(data_source=data_source_opt)
                                 doc_path = generate_report.create_document(specific_regions=target_regions)
                             finally:
 
