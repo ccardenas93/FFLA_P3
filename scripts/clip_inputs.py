@@ -104,6 +104,8 @@ def process_region(region_name, shapefile_path, source_dir=None, data_source=Non
         search_dirs = [
             os.path.join(source_dir, "inputs", "FMPLPT"),
             os.path.join(source_dir, "FMPLPT"),
+            os.path.join(source_dir, "inputs", "FDAT"),
+            os.path.join(source_dir, "FDAT"),
         ]
     else:
 
@@ -112,8 +114,10 @@ def process_region(region_name, shapefile_path, source_dir=None, data_source=Non
             os.path.join(source_dir, "inputs"),
             os.path.join(source_dir, "inputs", "FODESNA"),
             os.path.join(source_dir, "inputs", "FMPLPT"),
+            os.path.join(source_dir, "inputs", "FDAT"),
             os.path.join(source_dir, "FODESNA"),
             os.path.join(source_dir, "FMPLPT"),
+            os.path.join(source_dir, "FDAT"),
         ]
 
     for dom in settings.DOMAINS:
