@@ -25,14 +25,14 @@ def load_series(data_dir, dom):
             return None
     return xr.open_dataset(p)
 
-def run():
+def run(region_codes=None):
     print("\n" + "="*60)
     print("GENERANDO GRÁFICOS DE BARRAS POR VENTANA (ESPAÑOL)")
     print("="*60)
     out_cat = settings.OUT_CAT_BARRAS_VENTANA
     file_map = {"p_mmday": "precipitacion_por_ventana.png", "pet_mmday": "evapotranspiracion_por_ventana.png", "wb_mmday": "balance_hidrico_por_ventana.png"}
 
-    for region_code, region_info in settings.REGIONS.items():
+    for region_code, region_info in settings.iter_regions(region_codes):
         output_dir = settings.get_region_output_dir(region_code)
         print(f"Procesando región: {region_info['name']} ({output_dir})")
 

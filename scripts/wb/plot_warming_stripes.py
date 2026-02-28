@@ -21,12 +21,12 @@ def as_celsius(da):
     if "c" in u: return da
     sample=float(da.isel(time=0)); return da-273.15 if sample>150 else da
 
-def run():
+def run(region_codes=None):
     print("\n" + "="*60)
     print("GENERANDO WARMING STRIPES (ESPAÑOL)")
     print("="*60)
 
-    for region_code, region_info in settings.REGIONS.items():
+    for region_code, region_info in settings.iter_regions(region_codes):
         input_dir = settings.get_region_input_dir(region_code)
         output_dir = settings.get_region_output_dir(region_code)
         print(f"Procesando región: {region_info['name']} ({output_dir})")

@@ -76,7 +76,7 @@ def as_celsius(da):
         return da - 273.15
     return da
 
-def run():
+def run(region_codes=None):
     print("\n" + "="*60)
     print("GENERANDO SERIES TEMPORALES DE TEMPERATURA (ESPAÑOL)")
     print("="*60)
@@ -84,7 +84,7 @@ def run():
     input_cat = settings.OUT_CAT_SERIES_TEMP
     file_map = {"tas": "temperatura_media_anual.png", "tasmax": "temperatura_maxima_anual.png", "tasmin": "temperatura_minima_anual.png"}
 
-    for region_code, region_info in settings.REGIONS.items():
+    for region_code, region_info in settings.iter_regions(region_codes):
         input_dir = settings.get_region_input_dir(region_code)
         output_dir = settings.get_region_output_dir(region_code)
         print(f"Procesando región: {region_info['name']} ({output_dir})")

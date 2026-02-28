@@ -35,14 +35,14 @@ def mean_series(path, var, t0, t1):
     s.index = range(1,13)
     return s
 
-def run():
+def run(region_codes=None):
     print("\n" + "="*60)
     print("GENERATING MONTHLY CLIMATOLOGY TIMESERIES (DELIVERABLE)")
     print("="*60)
 
     var_cat = {"p_mmday": settings.OUT_CAT_CLIMATOLOGIA_P, "pet_mmday": settings.OUT_CAT_CLIMATOLOGIA_PET, "wb_mmday": settings.OUT_CAT_CLIMATOLOGIA_WB}
     period_name = {("1981", "2010"): "base_1981-2010.png", ("2021", "2050"): "cercano_2021-2050.png", ("2041", "2070"): "medio_2041-2070.png", ("2071", "2100"): "tardio_2071-2100.png"}
-    for region_code, region_info in settings.REGIONS.items():
+    for region_code, region_info in settings.iter_regions(region_codes):
         output_dir = settings.get_region_output_dir(region_code)
         print(f"Processing region: {region_info['name']} ({output_dir})")
 

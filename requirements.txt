@@ -2,7 +2,7 @@ streamlit
 numpy<2.0.0
 geopandas
 rioxarray
-xarray
+xarray<2025
 shapely
 netCDF4
 matplotlib

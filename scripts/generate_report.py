@@ -196,7 +196,7 @@ FILE_STRUCTURE = {
 }
 
 
-def add_title_page(doc):
+def add_title_page(doc, regions):
     """Añade página de portada."""
 
     title = doc.add_heading("ANEXO DE FIGURAS", 0)
@@ -224,7 +224,7 @@ def add_title_page(doc):
 
     regions_para = doc.add_paragraph()
     regions_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    region_names = [info["name"] for info in settings.REGIONS.values()]
+    region_names = [info["name"] for info in regions.values()]
     regions_text = "Regiones Analizadas:\n\n" + "\n".join(region_names)
     regions_run = regions_para.add_run(regions_text)
     regions_run.font.size = Pt(14)
@@ -296,16 +296,20 @@ def add_figure(doc, image_path, caption, max_width=6.5):
         return False
 
 
-def create_document(specific_regions=None):
+def create_document(specific_regions=None, report_dir=None, regions=None):
     """Crea el documento completo.
 
     Args:
         specific_regions (list): Lista de códigos de región para procesar. Si es None, procesa todas.
+        report_dir (str): Carpeta de salida del .docx. Si es None usa settings.REPORTS_DIR.
+        regions (dict): Diccionario de regiones a considerar. Si es None usa settings.REGIONS.
     """
     print("Creando documento Word con figuras...")
 
+    active_regions = regions or settings.REGIONS
+    output_reports_dir = report_dir or settings.REPORTS_DIR
 
-    os.makedirs(settings.REPORTS_DIR, exist_ok=True)
+    os.makedirs(output_reports_dir, exist_ok=True)
 
 
     doc = Document()
@@ -320,14 +324,14 @@ def create_document(specific_regions=None):
 
 
     print("\n📄 Generando portada...")
-    add_title_page(doc)
+    add_title_page(doc, active_regions)
 
 
     print("📑 Añadiendo índice...")
     add_toc_placeholder(doc)
 
 
-    for region_code, region_info in settings.REGIONS.items():
+    for region_code, region_info in active_regions.items():
         if specific_regions and region_code not in specific_regions:
             continue
 
@@ -373,7 +377,7 @@ def create_document(specific_regions=None):
         print(f"\n  📊 Resumen {region_name}: {added_figs}/{total_figs} figuras añadidas")
 
 
-    output_path = os.path.join(settings.REPORTS_DIR, f"Anexo_Figuras_Cambio_Climatico_{datetime.now().strftime('%Y%m%d')}.docx")
+    output_path = os.path.join(output_reports_dir, f"Anexo_Figuras_Cambio_Climatico_{datetime.now().strftime('%Y%m%d')}.docx")
     doc.save(output_path)
 
     print(f"\n{'='*60}")

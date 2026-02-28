@@ -35,14 +35,19 @@ _cache_geo = {}
 def cargar_shp(path):
     if path in _cache_geo: return _cache_geo[path]
     if not os.path.exists(path): return None
-    g = gpd.read_file(path)
     try:
-        if g.crs is None or g.crs.to_epsg() != 4326:
+        g = gpd.read_file(path)
+        if g.crs is None:
+            print(f"  ⚠️ Warning: Shapefile {os.path.basename(path)} has no CRS. Assuming EPSG:4326.")
+            g.set_crs("EPSG:4326", inplace=True)
+        if g.crs.to_epsg() != 4326:
+            print(f"  🔍 Reprojecting {os.path.basename(path)} from {g.crs} to EPSG:4326")
             g = g.to_crs("EPSG:4326")
-    except Exception:
-        pass
-    _cache_geo[path] = g
-    return g
+        _cache_geo[path] = g
+        return g
+    except Exception as e:
+        print(f"  ❌ Error loading shapefile {path}: {e}")
+        return None
 
 def mean_wb(data_dir, domain, t0, t1):
     p = os.path.join(data_dir, domain, f"wb_{domain}.nc")
@@ -55,20 +60,52 @@ def mean_wb(data_dir, domain, t0, t1):
     if "wb_mmday" not in ds: return None
     return (ds["wb_mmday"].mean("time")*365.0)
 
-def pmesh(ax, lat, lon, field, title, cmap="RdBu", vmin=None, vmax=None):
-    m = ax.pcolormesh(lon, lat, field, shading="auto", cmap=cmap, vmin=vmin, vmax=vmax)
+def pmesh(ax, lat, lon, field, title, cmap="RdBu", vmin=None, vmax=None, shp=None):
+    u_lat = np.unique(lat)
+    u_lon = np.unique(lon)
+    
+    if len(u_lat) <= 1 or len(u_lon) <= 1:
+        # Handle 1xN grids
+        dx = np.abs(np.diff(lon)).mean() if len(u_lon) > 1 else 0
+        dy = np.abs(np.diff(lat)).mean() if len(u_lat) > 1 else 0
+        res = max(dx, dy)
+        if res == 0: res = 0.1
+
+        if len(u_lat) <= 1:
+            lat_e = np.array([lat[0] - res/2, lat[0] + res/2])
+        else:
+            lat_e = np.concatenate([lat - dy/2, [lat[-1] + dy/2]])
+            
+        if len(u_lon) <= 1:
+            lon_e = np.array([lon[0] - res/2, lon[0] + res/2])
+        else:
+            lon_e = np.concatenate([lon - dx/2, [lon[-1] + dx/2]])
+            
+        m = ax.pcolormesh(lon_e, lat_e, field, cmap=cmap, vmin=vmin, vmax=vmax)
+    else:
+        m = ax.pcolormesh(lon, lat, field, shading="auto", cmap=cmap, vmin=vmin, vmax=vmax)
+    
+    if shp is not None:
+        try:
+            b = shp.total_bounds
+            ax.set_xlim(b[0], b[2])
+            ax.set_ylim(b[1], b[3])
+        except:
+            pass
+
+    ax.set_aspect('equal', 'box')
     ax.set_title(title)
     ax.set_xlabel("Longitud")
     ax.set_ylabel("Latitud")
     ax.grid(True, alpha=.2)
     return m
 
-def run():
+def run(region_codes=None):
     print("\n" + "="*60)
     print("GENERANDO MAPAS DE BALANCE HÍDRICO (ESPAÑOL)")
     print("="*60)
 
-    for region_code, region_info in settings.REGIONS.items():
+    for region_code, region_info in settings.iter_regions(region_codes):
         output_dir = settings.get_region_output_dir(region_code)
         print(f"Procesando región: {region_info['name']} ({output_dir})")
 
@@ -123,7 +160,7 @@ def run():
             for i, (label, (t0, t1)) in enumerate(WIN.items()):
                 ax = axes[j, i]
                 if label.startswith("Base"):
-                    m = pmesh(ax, lat, lon, base.values, f"{label}\nBalance Hídrico (mm/año)", cmap="RdBu", vmin=-base_lim, vmax=base_lim)
+                    m = pmesh(ax, lat, lon, base.values, f"{label}\nBalance Hídrico (mm/año)", cmap="RdBu", vmin=-base_lim, vmax=base_lim, shp=geo)
                     if geo is not None:
                         geo.boundary.plot(ax=ax, edgecolor="k", linewidth=0.9, zorder=5)
                     if i == 0: fig.colorbar(m, ax=ax, fraction=0.046, pad=0.04)
@@ -136,7 +173,7 @@ def run():
                     continue
 
                 d = (fut - base).values
-                m = pmesh(ax, lat, lon, d, f"{scen.replace('_ecuador','').upper()} Δ{t0}–{t1}", cmap=cmap_delta, vmin=vmin_delta, vmax=vmax_delta)
+                m = pmesh(ax, lat, lon, d, f"{scen.replace('_ecuador','').upper()} Δ{t0}–{t1}", cmap=cmap_delta, vmin=vmin_delta, vmax=vmax_delta, shp=geo)
                 if geo is not None:
                     geo.boundary.plot(ax=ax, edgecolor="k", linewidth=0.9, zorder=5)
                 fig.colorbar(m, ax=ax, fraction=0.046, pad=0.04)

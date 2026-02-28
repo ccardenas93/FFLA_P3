@@ -38,14 +38,19 @@ _GEO_CACHE={}
 def cargar_outline(path):
     if path in _GEO_CACHE: return _GEO_CACHE[path]
     if not os.path.exists(path): return None
-    g = gpd.read_file(path)
     try:
-        if g.crs is None or g.crs.to_epsg()!=4326:
+        g = gpd.read_file(path)
+        if g.crs is None:
+            print(f"  ⚠️ Warning: Shapefile {os.path.basename(path)} has no CRS. Assuming EPSG:4326.")
+            g.set_crs("EPSG:4326", inplace=True)
+        if g.crs.to_epsg()!=4326:
+            print(f"  🔍 Reprojecting {os.path.basename(path)} from {g.crs} to EPSG:4326")
             g = g.to_crs("EPSG:4326")
-    except Exception:
-        pass
-    _GEO_CACHE[path]=g
-    return g
+        _GEO_CACHE[path]=g
+        return g
+    except Exception as e:
+        print(f"  ❌ Error loading shapefile {path}: {e}")
+        return None
 
 def clim_mensual_wb(data_dir, dominio, t0, t1):
     """Climatología mensual de WB (mm/mes). data_dir = output dir con wb_*.nc."""
@@ -99,7 +104,37 @@ def panel_3x4(lat, lon, cubo, titulo, out_png, shp_path, vmin=None, vmax=None, c
         ax=axes[m-1]
         if cubo is not None and ("month" in cubo.dims) and (m in cubo["month"].values):
             campo = cubo.sel(month=m).values
-            last_im = ax.pcolormesh(lon, lat, campo, shading="auto", cmap=cmap, vmin=vmin, vmax=vmax)
+            if len(np.unique(lat)) <= 1 or len(np.unique(lon)) <= 1:
+                # Handle 1xN grids
+                dx = np.abs(np.diff(lon)).mean() if len(np.unique(lon)) > 1 else 0
+                dy = np.abs(np.diff(lat)).mean() if len(np.unique(lat)) > 1 else 0
+                res = max(dx, dy)
+                if res == 0: res = 0.1
+                
+                if len(np.unique(lat)) <= 1:
+                    lat_e = np.array([lat[0] - res/2, lat[0] + res/2])
+                else:
+                    lat_e = np.concatenate([lat - dy/2, [lat[-1] + dy/2]])
+                
+                if len(np.unique(lon)) <= 1:
+                    lon_e = np.array([lon[0] - res/2, lon[0] + res/2])
+                else:
+                    lon_e = np.concatenate([lon - dx/2, [lon[-1] + dx/2]])
+                
+                last_im = ax.pcolormesh(lon_e, lat_e, campo, cmap=cmap, vmin=vmin, vmax=vmax)
+            else:
+                last_im = ax.pcolormesh(lon, lat, campo, shading="auto", cmap=cmap, vmin=vmin, vmax=vmax)
+            
+            shp = cargar_outline(shp_path)
+            if shp is not None:
+                try:
+                    b = shp.total_bounds
+                    ax.set_xlim(b[0], b[2])
+                    ax.set_ylim(b[1], b[3])
+                except:
+                    pass
+
+            ax.set_aspect('equal', 'box')
             dibujar_shp(ax, shp_path)
         else:
             ax.text(0.5,0.5,"sin datos",ha="center",va="center",transform=ax.transAxes)
@@ -130,12 +165,12 @@ def _monthly_map_output(dom, etiqueta, is_delta):
         if "ssp585" in dom: return settings.OUT_CAT_MAPAS_DELTA_SSP585, f"delta_WB_mensual_ssp585_{suf}.png"
     return settings.OUT_CAT_MAPAS_MENSUALES_HIST, "out.png"
 
-def run():
+def run(region_codes=None):
     print("\n" + "="*60)
     print("GENERANDO MAPAS MENSUALES DE WB (ESPAÑOL)")
     print("="*60)
 
-    for region_code, region_info in settings.REGIONS.items():
+    for region_code, region_info in settings.iter_regions(region_codes):
         output_dir = settings.get_region_output_dir(region_code)
         shp_path = region_info.get("shapefile")
         print(f"Procesando región: {region_info['name']} ({output_dir})")

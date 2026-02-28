@@ -150,12 +150,12 @@ def label_trim(months):
 def write_line(f, text=""):
     f.write(text + "\n")
 
-def run():
+def run(region_codes=None):
     print("\n" + "="*60)
     print("GENERATING MASTER KEY NUMBERS (JSON & TXT)")
     print("="*60)
 
-    for region_code, region_info in settings.REGIONS.items():
+    for region_code, region_info in settings.iter_regions(region_codes):
         input_dir = settings.get_region_input_dir(region_code)
         output_dir = settings.get_region_output_dir(region_code)
         out_dir = os.path.join(output_dir, settings.OUT_CAT_RESUMEN)

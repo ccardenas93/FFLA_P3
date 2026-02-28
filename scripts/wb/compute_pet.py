@@ -38,25 +38,23 @@ def process_domain(input_dir, output_dir, dom):
 
     try:
         print(f'    Calculating PET for {dom}...')
-        dsmin = xr.open_dataset(pmin)
-        dsmax = xr.open_dataset(pmax)
-        dst = xr.open_dataset(pavg)
-        tmin = as_celsius(dsmin['tasmin' if 'tasmin' in dsmin else 'tmin'])
-        tmax = as_celsius(dsmax['tasmax' if 'tasmax' in dsmax else 'tmax'])
-        tmean = as_celsius(dst['tas' if 'tas' in dst else 'tmean'])
+        with xr.open_dataset(pmin) as dsmin, xr.open_dataset(pmax) as dsmax, xr.open_dataset(pavg) as dst:
+            tmin = as_celsius(dsmin['tasmin' if 'tasmin' in dsmin else 'tmin'])
+            tmax = as_celsius(dsmax['tasmax' if 'tasmax' in dsmax else 'tmax'])
+            tmean = as_celsius(dst['tas' if 'tas' in dst else 'tmean'])
 
-        lat = tmin['lat']
-        doy = tmin['time'].dt.dayofyear
-        LAT, DOY = xr.broadcast(lat, doy)
-        Ra = xr.apply_ufunc(ra_daily_np, LAT, DOY, dask='allowed')
-        Ra = Ra.transpose('lat', 'time').expand_dims({'lon': tmin['lon']}).transpose('time', 'lat', 'lon')
+            lat = tmin['lat']
+            doy = tmin['time'].dt.dayofyear
+            LAT, DOY = xr.broadcast(lat, doy)
+            Ra = xr.apply_ufunc(ra_daily_np, LAT, DOY, dask='allowed')
+            Ra = Ra.transpose('lat', 'time').expand_dims({'lon': tmin['lon']}).transpose('time', 'lat', 'lon')
 
-        PET = 0.0023 * Ra * (tmean + 17.8) * ((tmax - tmin).clip(min=0)) ** 0.5
-        PET = PET.rename('pet')
-        PET.attrs.update(units='mm/day', long_name='Hargreaves PET')
+            PET = 0.0023 * Ra * (tmean + 17.8) * ((tmax - tmin).clip(min=0)) ** 0.5
+            PET = PET.rename('pet')
+            PET.attrs.update(units='mm/day', long_name='Hargreaves PET')
 
-        out_file = os.path.join(out_path, f'pet_{dom}.nc')
-        PET.to_netcdf(out_file, encoding={'pet': {'zlib': True, 'complevel': 4}})
+            out_file = os.path.join(out_path, f'pet_{dom}.nc')
+            PET.to_netcdf(out_file, encoding={'pet': {'zlib': True, 'complevel': 4}})
         print(f'    ✅ Wrote {out_file}')
     except Exception as e:
         print(f'    ❌ Error calculating PET for {dom}: {e}')

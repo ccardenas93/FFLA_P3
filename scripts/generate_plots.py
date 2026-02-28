@@ -6,6 +6,7 @@ Calls individual plotting scripts refactored in organized/scripts/wb/
 
 import sys
 import os
+import traceback
 
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
@@ -79,6 +80,7 @@ def run(region_codes=None):
                 module.run()
         except Exception as e:
             print(f"❌ Error in {name}: {e}")
+            print(traceback.format_exc())
 
 
 

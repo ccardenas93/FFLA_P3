@@ -29,19 +29,61 @@ VENTANAS={
     "Tardío_2071-2100":("2071","2100"),
 }
 
-_cache_geo={}
+_cache_geo = {}
+
 def outline(path):
     if path in _cache_geo: return _cache_geo[path]
     if not os.path.exists(path): return None
-    g=gpd.read_file(path)
     try:
-        if g.crs is None or g.crs.to_epsg()!=4326: g=g.to_crs("EPSG:4326")
-    except Exception: pass
-    _cache_geo[path]=g
-    return g
+        g=gpd.read_file(path)
+        if g.crs is None:
+            print(f"  ⚠️ Warning: Shapefile {os.path.basename(path)} has no CRS. Assuming EPSG:4326.")
+            g.set_crs("EPSG:4326", inplace=True)
+        if g.crs.to_epsg()!=4326:
+            print(f"  🔍 Reprojecting {os.path.basename(path)} from {g.crs} to EPSG:4326")
+            g=g.to_crs("EPSG:4326")
+        _cache_geo[path]=g
+        return g
+    except Exception as e:
+        print(f"  ❌ Error loading shapefile {path}: {e}")
+        return None
 
-def pm(ax, lat, lon, fld, titulo, cmap, vmin=None, vmax=None):
-    im=ax.pcolormesh(lon,lat,fld,shading="auto",cmap=cmap,vmin=vmin,vmax=vmax)
+def pm(ax, lat, lon, fld, titulo, cmap, vmin=None, vmax=None, shp=None):
+    u_lat = np.unique(lat)
+    u_lon = np.unique(lon)
+    
+    if len(u_lat) <= 1 or len(u_lon) <= 1:
+        # Determine a reasonable resolution
+        dx = np.abs(np.diff(lon)).mean() if len(u_lon) > 1 else 0
+        dy = np.abs(np.diff(lat)).mean() if len(u_lat) > 1 else 0
+        
+        # If one is zero, borrow from the other, or use 0.1 default
+        res = max(dx, dy)
+        if res == 0: res = 0.1
+        
+        if len(u_lat) <= 1:
+            lat_edges = np.array([lat[0] - res/2, lat[0] + res/2])
+        else:
+            lat_edges = np.concatenate([lat - dy/2, [lat[-1] + dy/2]])
+
+        if len(u_lon) <= 1:
+            lon_edges = np.array([lon[0] - res/2, lon[0] + res/2])
+        else:
+            lon_edges = np.concatenate([lon - dx/2, [lon[-1] + dx/2]])
+
+        im=ax.pcolormesh(lon_edges, lat_edges, fld, cmap=cmap, vmin=vmin, vmax=vmax)
+    else:
+        im=ax.pcolormesh(lon, lat, fld, shading="auto", cmap=cmap, vmin=vmin, vmax=vmax)
+
+    if shp is not None:
+        try:
+            b = shp.total_bounds # [minx, miny, maxx, maxy]
+            ax.set_xlim(b[0], b[2])
+            ax.set_ylim(b[1], b[3])
+        except:
+            pass
+
+    ax.set_aspect('equal', 'box')
     ax.set_title(titulo); ax.set_xlabel("Longitud"); ax.set_ylabel("Latitud"); ax.grid(True,alpha=.2)
     return im
 
@@ -55,12 +97,12 @@ def leer_mean(data_dir, dom, t0, t1, var):
     if ds.sizes.get("time",0)==0: return None
     return (ds[var].mean("time")*365.0)
 
-def run():
+def run(region_codes=None):
     print("\n" + "="*60)
     print("GENERATING DELIVERABLE MAPS COMPONENTS")
     print("="*60)
 
-    for region_code, region_info in settings.REGIONS.items():
+    for region_code, region_info in settings.iter_regions(region_codes):
         output_dir = settings.get_region_output_dir(region_code)
         print(f"Processing region: {region_info['name']} ({output_dir})")
         shp = region_info.get("shapefile")
@@ -81,9 +123,9 @@ def run():
 
 
         fig,axs=plt.subplots(1,3,figsize=(15,4),sharex=True,sharey=True)
-        im0=pm(axs[0],lat,lon,baseP.values,"Precipitación (mm/año)","Blues",pmin,pmax)
-        im1=pm(axs[1],lat,lon,baseE.values,"Evapotranspiración (mm/año)","Oranges",emin,emax)
-        im2=pm(axs[2],lat,lon,baseWB.values,"Balance hídrico (mm/año)","RdBu",-wb_abs,wb_abs)
+        im0=pm(axs[0],lat,lon,baseP.values,"Precipitación (mm/año)","Blues",pmin,pmax,shp=geo)
+        im1=pm(axs[1],lat,lon,baseE.values,"Evapotranspiración (mm/año)","Oranges",emin,emax,shp=geo)
+        im2=pm(axs[2],lat,lon,baseWB.values,"Balance hídrico (mm/año)","RdBu",-wb_abs,wb_abs,shp=geo)
         if geo is not None:
              for ax in axs: geo.boundary.plot(ax=ax,edgecolor="k",linewidth=.9)
         for im,ax in zip([im0,im1,im2],axs):
@@ -115,7 +157,7 @@ def run():
                         lo,hi=np.nanpercentile(delta,[2,98]); vm_dyn=max(abs(lo),abs(hi),50); vm_dyn=np.ceil(vm_dyn/50)*50
                     else:
                         vm_dyn = vm
-                    im=pm(axs[j],lat,lon,delta,scen.replace('_ecuador',''),cmap,-vm_dyn,vm_dyn)
+                    im=pm(axs[j],lat,lon,delta,scen.replace('_ecuador',''),cmap,-vm_dyn,vm_dyn,shp=geo)
                     if geo is not None:
                         geo.boundary.plot(ax=axs[j],edgecolor="k",linewidth=.9)
                     ims.append(im)

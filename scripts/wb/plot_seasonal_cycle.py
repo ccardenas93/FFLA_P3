@@ -38,7 +38,7 @@ def clim_month(data_dir, domain, t0, t1):
         print(f"Error processing {domain}: {e}")
         return None
 
-def run():
+def run(region_codes=None):
     print("\n" + "="*60)
     print("GENERATING SEASONAL CYCLE PLOTS")
     print("="*60)
@@ -48,7 +48,7 @@ def run():
     out_cat = settings.OUT_CAT_CLIMATOLOGIA_COMP
     file_map = {"P": "ciclo_anual_precipitacion.png", "PET": "ciclo_anual_evapotranspiracion.png", "WB": "ciclo_anual_balance_hidrico.png"}
 
-    for region_code, region_info in settings.REGIONS.items():
+    for region_code, region_info in settings.iter_regions(region_codes):
         output_dir = settings.get_region_output_dir(region_code)
         print(f"Processing region: {region_info['name']} ({output_dir})")
 

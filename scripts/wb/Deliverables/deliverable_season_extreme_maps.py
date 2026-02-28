@@ -48,12 +48,12 @@ def pm(ax, lat, lon, fld, ttl, vmin=None, vmax=None, cmap="bwr_r"):
     ax.set_title(ttl, fontsize=10); ax.set_xlabel("Longitud"); ax.set_ylabel("Latitud"); ax.grid(True, alpha=.2)
     return im
 
-def run():
+def run(region_codes=None):
     print("\n" + "="*60)
     print("GENERATING SEASONAL EXTREME MAPS")
     print("="*60)
 
-    for region_code, region_info in settings.REGIONS.items():
+    for region_code, region_info in settings.iter_regions(region_codes):
         output_dir = settings.get_region_output_dir(region_code)
         print(f"Processing region: {region_info['name']} ({output_dir})")
 

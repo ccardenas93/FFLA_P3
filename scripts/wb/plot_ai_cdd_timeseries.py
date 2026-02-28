@@ -110,13 +110,13 @@ def rolling_mean(data, window=11):
         return data
     return np.convolve(data, np.ones(window)/window, mode='valid')
 
-def run():
+def run(region_codes=None):
     print("\n" + "="*60)
     print("GENERATING AI AND CDD TIMESERIES")
     print("="*60)
 
     out_cat = settings.OUT_CAT_INDICADORES
-    for region_code, region_info in settings.REGIONS.items():
+    for region_code, region_info in settings.iter_regions(region_codes):
         output_dir = settings.get_region_output_dir(region_code)
         print(f"Processing region: {region_info['name']} ({output_dir})")
 

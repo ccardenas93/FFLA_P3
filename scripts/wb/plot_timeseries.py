@@ -46,7 +46,7 @@ def roll_nanmean(y, k, min_frac=0.6):
             out[i] = w[valid].mean()
     return out
 
-def run():
+def run(region_codes=None):
     print("\n" + "="*60)
     print("GENERANDO SERIES TEMPORALES (ESPAÑOL)")
     print("="*60)
@@ -56,7 +56,7 @@ def run():
     out_cat = settings.OUT_CAT_SERIES_HIDRO
     file_map = {"P": "precipitacion_anual.png", "PET": "evapotranspiracion_anual.png", "WB": "balance_hidrico_anual.png"}
 
-    for region_code, region_info in settings.REGIONS.items():
+    for region_code, region_info in settings.iter_regions(region_codes):
         output_dir = settings.get_region_output_dir(region_code)
         print(f"Procesando región: {region_info['name']} ({output_dir})")
 

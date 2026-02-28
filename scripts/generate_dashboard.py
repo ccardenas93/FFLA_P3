@@ -30,7 +30,6 @@ LOGO_FILES = [
 ]
 
 LOGO_SOURCE_DIR = os.path.join(settings.INPUTS_DIR, "images")
-LOGO_OUTPUT_DIR = os.path.join(settings.OUTPUTS_DIR, "assets", "logos")
 
 STATIC_REPO_NAME = "FFLA_P1"
 
@@ -53,24 +52,31 @@ def get_ai_category(ai):
     if ai < 0.65: return "Subhúmedo Seco", "#65a30d", 65
     return "Húmedo", "#059669", 100
 
-def prepare_logo_assets():
+def prepare_logo_assets(output_root):
     """Copies logos into outputs/assets/logos and returns relative paths."""
-    os.makedirs(LOGO_OUTPUT_DIR, exist_ok=True)
+    logo_output_dir = os.path.join(output_root, "assets", "logos")
+    os.makedirs(logo_output_dir, exist_ok=True)
     logo_paths = []
     for filename, alt in LOGO_FILES:
         src = os.path.join(LOGO_SOURCE_DIR, filename)
-        dst = os.path.join(LOGO_OUTPUT_DIR, filename)
+        dst = os.path.join(logo_output_dir, filename)
         try:
             shutil.copy2(src, dst)
-            rel_path = os.path.relpath(dst, settings.OUTPUTS_DIR)
+            rel_path = os.path.relpath(dst, output_root)
             logo_paths.append((rel_path.replace("\\", "/"), alt))
         except FileNotFoundError:
             print(f"⚠️ Logo no encontrado: {src}")
     return logo_paths
 
 
-def generate_html_content(data_source=None):
-    logo_assets = prepare_logo_assets()
+def generate_html_content(data_source=None, output_root=None, region_codes=None, regions=None):
+    output_root = output_root or settings.OUTPUTS_DIR
+    os.makedirs(output_root, exist_ok=True)
+    active_regions = regions or settings.REGIONS
+    if region_codes:
+        active_regions = {code: active_regions[code] for code in region_codes if code in active_regions}
+
+    logo_assets = prepare_logo_assets(output_root)
 
     # Filter logos based on data_source
     active_logo_assets = []
@@ -554,9 +560,9 @@ def generate_html_content(data_source=None):
 
     region_keys = []
     for code in REGION_DISPLAY_ORDER:
-        if code in settings.REGIONS and code not in region_keys:
+        if code in active_regions and code not in region_keys:
             region_keys.append(code)
-    for code in settings.REGIONS.keys():
+    for code in active_regions.keys():
         if code not in region_keys:
             region_keys.append(code)
 
@@ -565,7 +571,7 @@ def generate_html_content(data_source=None):
     for r_code in region_keys:
         active_cls = " active" if first else ""
 
-        r_display = REGION_DISPLAY_NAMES.get(r_code, settings.REGIONS[r_code]['name'])
+        r_display = REGION_DISPLAY_NAMES.get(r_code, active_regions[r_code]['name'])
 
         html += f"""            <button id="btn-{r_code}" class="region-btn{active_cls}" onclick="switchRegion('{r_code}')">{r_display}</button>\n"""
         first = False
@@ -614,15 +620,13 @@ def generate_html_content(data_source=None):
     for r_code in region_keys:
 
 
-        pass
-
-        r_info = settings.REGIONS[r_code]
+        r_info = active_regions[r_code]
         r_name = r_info['name']
         display_style = "block" if first else "none"
         first = False
 
 
-        json_path = os.path.join(settings.OUTPUTS_DIR, r_name, "24_Resumen_Ejecutivo", "key_numbers.json")
+        json_path = os.path.join(output_root, r_name, "24_Resumen_Ejecutivo", "key_numbers.json")
         data = load_key_numbers_json(json_path)
 
 
@@ -949,15 +953,16 @@ def generate_html_content(data_source=None):
 </html>
 """
 
-    output_path = os.path.join(settings.OUTPUTS_DIR, "index.html")
+    output_path = os.path.join(output_root, "index.html")
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(html)
 
     print(f"✅ Dashboard generado: {output_path}")
 
 
-def export_static_site():
+def export_static_site(output_root=None):
     """Copies the generated dashboard into the GitHub repository and pushes changes."""
+    output_root = output_root or settings.OUTPUTS_DIR
     project_root = os.path.abspath(os.path.join(settings.BASE_DIR_PATH, ".."))
     repo_path = os.path.join(project_root, STATIC_REPO_NAME)
 
@@ -976,8 +981,8 @@ def export_static_site():
         else:
             os.remove(target)
 
-    for item in os.listdir(settings.OUTPUTS_DIR):
-        src = os.path.join(settings.OUTPUTS_DIR, item)
+    for item in os.listdir(output_root):
+        src = os.path.join(output_root, item)
         dst = os.path.join(repo_path, item)
         if os.path.isdir(src):
             shutil.copytree(src, dst)
@@ -1015,17 +1020,25 @@ def export_static_site():
 
     print("🚀 Sitio estático publicado en GitHub.")
 
-def run(deploy_to_github=False, data_source=None):
+def run(deploy_to_github=False, data_source=None, output_root=None, region_codes=None, regions=None):
     """
     Generate dashboard HTML and optionally deploy to GitHub repo.
     Args:
         deploy_to_github: If True, copies outputs to FFLA_P1 repo and runs git commit/push.
                           Set to True only when you want to publish; leave False for local/exe use.
         data_source: 'FODESNA' or 'FMPLPT' to filter logos.
+        output_root: Base folder where index.html and assets are written.
+        region_codes: Optional region-code filter for dashboard content.
+        regions: Optional region dictionary; defaults to settings.REGIONS.
     """
-    generate_html_content(data_source)
+    generate_html_content(
+        data_source=data_source,
+        output_root=output_root,
+        region_codes=region_codes,
+        regions=regions,
+    )
     if deploy_to_github or os.environ.get("DEPLOY_DASHBOARD", "").lower() in ("1", "true", "yes"):
-        export_static_site()
+        export_static_site(output_root=output_root)
     else:
         print("ℹ️ Dashboard generado localmente. Para publicar en GitHub, ejecuta con deploy_to_github=True o DEPLOY_DASHBOARD=1")
 

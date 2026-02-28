@@ -31,27 +31,26 @@ def process_domain(input_dir, output_dir, dom):
 
     try:
         print(f'    Calculating Water Balance for {dom}...')
-        dsP = xr.open_dataset(p_pr)
-        dsE = xr.open_dataset(p_pet)
-        P = pr_to_mmday(dsP['pr' if 'pr' in dsP else 'precip'])
-        PET = dsE['pet']
-        WB = (P - PET).rename('wb_mmday')
-        WB.attrs['units'] = 'mm/day'
+        with xr.open_dataset(p_pr) as dsP, xr.open_dataset(p_pet) as dsE:
+            P = pr_to_mmday(dsP['pr' if 'pr' in dsP else 'precip'])
+            PET = dsE['pet']
+            WB = (P - PET).rename('wb_mmday')
+            WB.attrs['units'] = 'mm/day'
 
-        out = os.path.join(out_path, f'wb_{dom}.nc')
-        xr.Dataset({'p_mmday': P, 'pet_mmday': PET, 'wb_mmday': WB}).to_netcdf(
-            out, encoding={k: {'zlib': True, 'complevel': 4} for k in ['p_mmday', 'pet_mmday', 'wb_mmday']})
-        print(f'    ✅ Wrote {out}')
+            out = os.path.join(out_path, f'wb_{dom}.nc')
+            xr.Dataset({'p_mmday': P, 'pet_mmday': PET, 'wb_mmday': WB}).to_netcdf(
+                out, encoding={k: {'zlib': True, 'complevel': 4} for k in ['p_mmday', 'pet_mmday', 'wb_mmday']})
+            print(f'    ✅ Wrote {out}')
 
-        out_agg = os.path.join(out_path, f'wb_agg_{dom}.nc')
-        xr.Dataset({
-            'p_mon': P.resample(time='MS').sum('time'),
-            'pet_mon': PET.resample(time='MS').sum('time'),
-            'wb_mon': WB.resample(time='MS').sum('time'),
-            'p_ann': P.resample(time='YS').sum('time'),
-            'pet_ann': PET.resample(time='YS').sum('time'),
-            'wb_ann': WB.resample(time='YS').sum('time'),
-        }).to_netcdf(out_agg)
+            out_agg = os.path.join(out_path, f'wb_agg_{dom}.nc')
+            xr.Dataset({
+                'p_mon': P.resample(time='MS').sum('time'),
+                'pet_mon': PET.resample(time='MS').sum('time'),
+                'wb_mon': WB.resample(time='MS').sum('time'),
+                'p_ann': P.resample(time='YS').sum('time'),
+                'pet_ann': PET.resample(time='YS').sum('time'),
+                'wb_ann': WB.resample(time='YS').sum('time'),
+            }).to_netcdf(out_agg)
         print(f'    ✅ Wrote {out_agg}')
     except Exception as e:
         print(f'    ❌ Error in Water Balance for {dom}: {e}')
