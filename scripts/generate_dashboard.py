@@ -33,6 +33,26 @@ LOGO_SOURCE_DIR = os.path.join(settings.INPUTS_DIR, "images")
 
 STATIC_REPO_NAME = "FFLA_P1"
 
+NAV_SECTIONS = [
+    ("resumen", "fa-clipboard-check", "Resumen Ejecutivo"),
+    ("escenarios", "fa-layer-group", "Análisis por Escenario"),
+    ("series", "fa-chart-line", "Series Temporales"),
+    ("estacionalidad", "fa-calendar-alt", "Estacionalidad"),
+    ("mapas", "fa-map-marked-alt", "Análisis Espacial"),
+]
+
+SCENARIOS = [
+    ("ssp126", "SSP1-2.6", "Optimista"),
+    ("ssp370", "SSP3-7.0", "Intermedio"),
+    ("ssp585", "SSP5-8.5", "Alto"),
+]
+
+SCENARIO_MONTHLY_DELTA_DIR = {
+    "ssp126": "21_Mapas_Mensuales_Delta_SSP126",
+    "ssp370": "22_Mapas_Mensuales_Delta_SSP370",
+    "ssp585": "23_Mapas_Mensuales_Delta_SSP585",
+}
+
 def load_key_numbers_json(file_path):
     """Reads key numbers JSON file."""
     if not os.path.exists(file_path):
@@ -51,6 +71,23 @@ def get_ai_category(ai):
     if ai < 0.50: return "Semiárido", "#d97706", 50
     if ai < 0.65: return "Subhúmedo Seco", "#65a30d", 65
     return "Húmedo", "#059669", 100
+
+
+def _to_float(value):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def fmt_number(value, decimals=1, signed=False, suffix=""):
+    num = _to_float(value)
+    if num is None:
+        return "N/A"
+    fmt = f"{{:{'+' if signed else ''}.{decimals}f}}"
+    if decimals == 0:
+        fmt = f"{{:{'+' if signed else ''}.0f}}"
+    return f"{fmt.format(num)}{suffix}"
 
 def prepare_logo_assets(output_root):
     """Copies logos into outputs/assets/logos and returns relative paths."""
@@ -108,39 +145,58 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Cambio Climático</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --primary: #0f172a;
-            --secondary: #334155;
-            --accent: #2563eb;
-            --accent-hover: #1d4ed8;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --light: #f8fafc;
-            --border: #e2e8f0;
-            --sidebar-width: 260px;
+            --primary: #0c2a38;
+            --secondary: #274457;
+            --accent: #007f8f;
+            --accent-strong: #005f73;
+            --surface: #ffffff;
+            --surface-soft: #f4f8fb;
+            --bg-1: #e9f3f8;
+            --bg-2: #f7fbff;
+            --border: #d4e4ee;
+            --text-muted: #597083;
+            --sidebar-width: 300px;
+            --ok: #0f9d73;
+            --risk: #dc4d41;
+            --header-height: 108px;
         }
 
         * { box-sizing: border-box; }
 
         body {
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-            line-height: 1.6;
+            font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            line-height: 1.55;
             color: var(--secondary);
             margin: 0;
-            background-color: #f1f5f9;
-            display: flex;
-            flex-direction: column;
             min-height: 100vh;
+            background:
+                radial-gradient(circle at 10% 0%, rgba(0, 127, 143, 0.10) 0%, rgba(0, 127, 143, 0) 38%),
+                radial-gradient(circle at 100% 15%, rgba(12, 42, 56, 0.09) 0%, rgba(12, 42, 56, 0) 35%),
+                linear-gradient(180deg, var(--bg-1), var(--bg-2));
         }
 
-        /* --- Header --- */
+        .app-shell-bg {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image: linear-gradient(rgba(39, 68, 87, 0.03) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(39, 68, 87, 0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+            opacity: 0.6;
+            z-index: 0;
+        }
+
         header {
-            background-color: white;
+            background-color: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(8px);
             border-bottom: 1px solid var(--border);
-            padding: 15px 30px;
+            padding: 16px 28px;
             position: fixed;
             width: 100%;
             top: 0;
@@ -148,12 +204,25 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
             display: flex;
             justify-content: space-between;
             align-items: center;
-            height: 90px;
+            min-height: var(--header-height);
             gap: 20px;
         }
 
-        .logo-area h1 { margin: 0; font-size: 1.4rem; color: var(--primary); font-weight: 700; }
-        .logo-area span { display:block; font-weight: 500; color: #64748b; font-size: 0.85rem; }
+        .logo-area h1 {
+            font-family: "IBM Plex Serif", Georgia, serif;
+            margin: 0;
+            font-size: 1.38rem;
+            color: var(--primary);
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+        .logo-area span {
+            display: block;
+            margin-top: 3px;
+            font-weight: 500;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
 
         .logo-strip {
             display: flex;
@@ -161,24 +230,23 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
             align-items: center;
         }
         .logo-strip img {
-            max-height: 42px;
+            max-height: 36px;
             width: auto;
             object-fit: contain;
-            filter: drop-shadow(0 1px 3px rgba(0,0,0,0.12));
         }
 
-        /* --- Layout --- */
         .main-wrapper {
             display: flex;
-            margin-top: 70px; /* Header height */
-            height: calc(100vh - 70px);
+            margin-top: var(--header-height);
+            height: calc(100vh - var(--header-height));
             overflow: hidden;
+            position: relative;
+            z-index: 1;
         }
 
-        /* --- Sidebar --- */
         .sidebar {
             width: var(--sidebar-width);
-            background-color: white;
+            background-color: rgba(255, 255, 255, 0.94);
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
@@ -189,16 +257,18 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
 
         .sidebar-label {
             padding: 0 20px;
-            font-size: 0.75rem;
+            font-size: 0.73rem;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #94a3b8;
-            font-weight: 600;
-            margin-bottom: 10px;
-            margin-top: 20px;
+            letter-spacing: 1.1px;
+            color: #7f95a5;
+            font-weight: 700;
+            margin: 12px 0;
         }
 
         .nav-item {
+            width: 100%;
+            border: none;
+            background: transparent;
             padding: 12px 20px;
             color: var(--secondary);
             text-decoration: none;
@@ -206,121 +276,166 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
             align-items: center;
             gap: 12px;
             border-left: 3px solid transparent;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
             cursor: pointer;
             font-size: 0.95rem;
+            text-align: left;
         }
 
         .nav-item:hover {
-            background-color: var(--light);
+            background-color: #edf5fb;
             color: var(--primary);
         }
 
         .nav-item.active {
-            background-color: #eff6ff;
-            color: var(--accent);
+            background: linear-gradient(90deg, rgba(0, 127, 143, 0.16), rgba(0, 127, 143, 0.03));
+            color: var(--accent-strong);
             border-left-color: var(--accent);
-            font-weight: 600;
+            font-weight: 700;
         }
 
         .nav-item i { width: 20px; text-align: center; }
 
-        /* --- Main Content --- */
+        .sidebar-note {
+            margin: 18px 16px 0 16px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--surface-soft);
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .sidebar-note b {
+            display: block;
+            color: var(--secondary);
+            margin-bottom: 6px;
+        }
+
         .content-area {
             flex: 1;
-            padding: 30px;
+            padding: 28px 28px 56px 28px;
             overflow-y: auto;
             scroll-behavior: smooth;
         }
 
         .section-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            margin-bottom: 60px;
+            max-width: 1440px;
+            margin: 0 auto 48px auto;
+            scroll-margin-top: 22px;
         }
 
         .section-title {
             font-size: 1.5rem;
             color: var(--primary);
-            margin-bottom: 25px;
-            padding-bottom: 15px;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
             border-bottom: 2px solid var(--border);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
+            font-family: "IBM Plex Serif", Georgia, serif;
         }
 
-        /* --- Region Selector (Top Bar) --- */
+        .section-subtitle {
+            margin: -8px 0 20px 0;
+            color: var(--text-muted);
+            font-size: 0.93rem;
+        }
+
         .region-selector {
             display: flex;
-            gap: 10px;
-            background: #f1f5f9;
-            padding: 5px;
-            border-radius: 8px;
+            gap: 8px;
+            background: #eaf3f8;
+            padding: 6px;
+            border-radius: 9px;
+            border: 1px solid var(--border);
         }
 
         .region-btn {
-            padding: 8px 16px;
-            border: none;
+            padding: 8px 14px;
+            border: 1px solid transparent;
             background: transparent;
-            border-radius: 6px;
+            border-radius: 7px;
             cursor: pointer;
             font-weight: 600;
-            color: #64748b;
+            color: #466175;
             transition: all 0.2s;
         }
 
         .region-btn.active {
             background: white;
-            color: var(--accent);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            color: var(--accent-strong);
+            border-color: #c7deea;
+            box-shadow: 0 1px 3px rgba(12, 42, 56, 0.08);
         }
 
-        /* --- Cards & Grids --- */
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 25px;
+            grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+            gap: 18px;
         }
 
         .full-width { grid-column: 1 / -1; }
 
         .card {
-            background: white;
+            background: var(--surface);
             border-radius: 12px;
             border: 1px solid var(--border);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 6px rgba(12, 42, 56, 0.05);
             overflow: hidden;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+            box-shadow: 0 12px 20px rgba(12, 42, 56, 0.08);
         }
 
         .card-header {
-            padding: 15px 20px;
+            padding: 13px 16px;
             border-bottom: 1px solid var(--border);
-            background: #f8fafc;
+            background: #f2f8fc;
             font-weight: 600;
             color: var(--primary);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 8px;
         }
 
-        .card-body { padding: 0; }
-        .card-padding { padding: 20px; }
+        .card-padding { padding: 16px; }
+
+        .science-callout {
+            background: linear-gradient(135deg, rgba(0, 127, 143, 0.10), rgba(0, 127, 143, 0.02));
+            border: 1px solid #b7d7e3;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 18px;
+        }
+
+        .science-callout b {
+            color: var(--primary);
+            font-size: 0.88rem;
+        }
+
+        .science-grid {
+            margin-top: 8px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 8px 14px;
+            font-size: 0.83rem;
+            color: var(--text-muted);
+        }
 
         .img-wrapper {
             width: 100%;
-            height: 250px;
+            height: 240px;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #f1f5f9;
+            background: #eef6fb;
             cursor: zoom-in;
         }
 
@@ -329,107 +444,90 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
             height: 100%;
             object-fit: cover;
             object-position: center;
-            transition: transform 0.5s ease;
+            transition: transform 0.45s ease;
         }
         .img-wrapper.img-contain img {
             object-fit: contain;
         }
-
-        .img-wrapper:hover img { transform: scale(1.05); }
+        .img-wrapper:hover img { transform: scale(1.03); }
 
         .img-caption {
-            padding: 12px 20px;
-            font-size: 0.85rem;
-            color: #64748b;
+            padding: 10px 14px;
+            font-size: 0.82rem;
+            color: #668094;
             background: white;
             border-top: 1px solid var(--border);
         }
 
-        /* --- Key Metrics Styles --- */
         .metrics-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
         }
 
         .kpi-card {
-            background: white;
-            padding: 20px;
+            background: linear-gradient(180deg, #ffffff, #f8fcff);
+            padding: 16px 12px;
             border-radius: 10px;
             border: 1px solid var(--border);
             text-align: center;
             position: relative;
             overflow: hidden;
         }
-        .kpi-value { font-size: 1.6rem; font-weight: 800; color: var(--primary); margin: 5px 0; }
-        .kpi-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; }
-        .kpi-sub { font-size: 0.8rem; color: #94a3b8; margin-top: 5px; }
+        .kpi-value { font-size: 1.45rem; font-weight: 800; color: var(--primary); margin: 4px 0; }
+        .kpi-label { font-size: 0.74rem; color: #617b8f; text-transform: uppercase; font-weight: 700; letter-spacing: 0.4px; }
+        .kpi-sub { font-size: 0.79rem; color: #8399a8; margin-top: 4px; }
 
-        /* AI Gauge */
         .ai-scale {
-            margin-top: 10px;
+            margin-top: 9px;
             height: 6px;
-            background: #e2e8f0;
+            background: #dcebf3;
             border-radius: 3px;
-            position: relative;
             width: 100%;
         }
-        .ai-fill {
-            height: 100%;
-            border-radius: 3px;
-            transition: width 0.3s;
-        }
+        .ai-fill { height: 100%; border-radius: 3px; }
         .ai-category {
-            font-size: 0.7rem;
-            font-weight: 600;
+            font-size: 0.72rem;
+            font-weight: 700;
             margin-top: 4px;
         }
 
-        /* --- Data Table --- */
         .table-container {
             overflow-x: auto;
             border-radius: 8px;
             border: 1px solid var(--border);
+            background: white;
         }
 
         table { width: 100%; border-collapse: collapse; background: white; }
-        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-        th { background: #f8fafc; font-weight: 600; color: var(--secondary); }
+        th, td { padding: 11px 14px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.87rem; }
+        th { background: #f1f8fc; font-weight: 700; color: var(--secondary); white-space: nowrap; }
         tr:last-child td { border-bottom: none; }
 
-        .badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 700;
-        }
-        .badge-ssp126 { background: #dcfce7; color: #15803d; }
-        .badge-ssp370 { background: #fef3c7; color: #b45309; }
-        .badge-ssp585 { background: #fee2e2; color: #b91c1c; }
+        .val-pos { color: var(--ok); font-weight: 700; }
+        .val-neg { color: var(--risk); font-weight: 700; }
 
-        .val-pos { color: #10b981; font-weight: 600; }
-        .val-neg { color: #ef4444; font-weight: 600; }
-
-        /* --- Scenario Tabs --- */
         .scenario-tabs {
             display: flex;
-            gap: 5px;
-            margin-bottom: 20px;
+            gap: 6px;
+            margin-bottom: 12px;
             border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+            padding-bottom: 2px;
         }
         .scen-tab {
-            padding: 10px 20px;
+            padding: 9px 14px;
             cursor: pointer;
             border: 1px solid transparent;
             border-bottom: none;
-            border-radius: 6px 6px 0 0;
+            border-radius: 8px 8px 0 0;
             background: transparent;
-            font-weight: 500;
-            color: #64748b;
+            font-weight: 600;
+            color: #5f778a;
+            white-space: nowrap;
         }
-        .scen-tab:hover { background: #f1f5f9; }
+        .scen-tab:hover { background: #eef6fb; }
         .scen-tab.active {
             background: white;
             border-color: var(--border);
@@ -438,114 +536,329 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
             margin-bottom: -1px;
         }
 
-        /* --- Lightbox --- */
+        .scenario-legend {
+            margin-bottom: 14px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+        }
+
+        .legend-dot {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-dot::before {
+            content: "";
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .legend-dot.pos::before { background: var(--ok); }
+        .legend-dot.neg::before { background: var(--risk); }
+
+        .footer-note {
+            padding: 18px 20px;
+            font-size: 0.76rem;
+            color: #7f95a5;
+            text-align: center;
+            border-top: 1px solid var(--border);
+        }
+
         .lightbox {
             display: none;
             position: fixed;
             z-index: 1000;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background-color: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(5px);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(12, 42, 56, 0.94);
+            backdrop-filter: blur(6px);
             justify-content: center;
             align-items: center;
-            padding: 40px;
+            padding: 30px;
         }
 
         .lightbox img {
             max-width: 100%;
             max-height: 100%;
-            border-radius: 4px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            border-radius: 6px;
+            box-shadow: 0 20px 24px rgba(0, 0, 0, 0.42);
+            border: 1px solid rgba(255, 255, 255, 0.22);
         }
 
         .lightbox-close {
             position: absolute;
-            top: 20px; right: 30px;
+            top: 16px;
+            right: 24px;
             color: white;
             font-size: 2rem;
             cursor: pointer;
-            opacity: 0.7;
+            opacity: 0.78;
             transition: opacity 0.2s;
         }
         .lightbox-close:hover { opacity: 1; }
 
-    </style>
-    <script>
-        // Global variable to track the currently active region
-        var activeRegion = '';
-
-        function switchRegion(regionId) {
-            activeRegion = regionId;
-
-            // Hide all region contents
-            document.querySelectorAll('.region-content').forEach(el => el.style.display = 'none');
-            // Show selected region content
-            document.getElementById('content-' + regionId).style.display = 'block';
-
-            // Update button states
-            document.querySelectorAll('.region-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById('btn-' + regionId).classList.add('active');
-        }
-
-        function scrollToSection(sectionBaseId) {
-            // Scroll to the section within the ACTIVE region
-            // IDs are formatted as: sectionBaseId-regionCode
-            var targetId = sectionBaseId + '-' + activeRegion;
-            const el = document.getElementById(targetId);
-            if (el) {
-                el.scrollIntoView({behavior: 'smooth'});
-            } else {
-                console.warn('Target element not found:', targetId);
+        @media (max-width: 1100px) {
+            header {
+                padding: 14px 18px;
+                flex-wrap: wrap;
+                min-height: 126px;
+            }
+            .main-wrapper {
+                margin-top: 126px;
+                height: calc(100vh - 126px);
+            }
+            .sidebar {
+                width: 250px;
             }
         }
 
+        @media (max-width: 920px) {
+            .main-wrapper {
+                flex-direction: column;
+                height: calc(100vh - 126px);
+                min-height: calc(100vh - 126px);
+                overflow: hidden;
+            }
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                padding: 10px 0;
+            }
+            .content-area {
+                overflow-y: auto;
+                padding: 20px 12px 40px 12px;
+            }
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .section-container {
+                margin-bottom: 32px;
+            }
+        }
+    </style>
+    <script>
+        let activeRegion = "";
+        let observer = null;
+        let isScrollTicking = false;
+        let suppressObserver = false;
+
+        function getContentArea() {
+            return document.getElementById("contentArea");
+        }
+
+        function getActiveSections() {
+            if (!activeRegion) {
+                return [];
+            }
+            return Array.from(
+                document.querySelectorAll('#content-' + activeRegion + ' .section-container[data-section]')
+            );
+        }
+
+        function setActiveNav(sectionBaseId) {
+            document.querySelectorAll('.nav-item').forEach((el) => {
+                if (el.dataset.section === sectionBaseId) {
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                }
+            });
+        }
+
+        function updateActiveNavByScroll() {
+            if (suppressObserver) {
+                return;
+            }
+            const contentArea = getContentArea();
+            const sections = getActiveSections();
+            if (!contentArea || sections.length === 0) {
+                return;
+            }
+
+            const rootTop = contentArea.getBoundingClientRect().top;
+            let bestSection = sections[0];
+            let bestDistance = Number.POSITIVE_INFINITY;
+
+            sections.forEach((section) => {
+                const distance = Math.abs(section.getBoundingClientRect().top - rootTop - 76);
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    bestSection = section;
+                }
+            });
+
+            const sectionBaseId = bestSection.dataset.section;
+            if (sectionBaseId) {
+                setActiveNav(sectionBaseId);
+            }
+        }
+
+        function reconnectObserver() {
+            if (observer) {
+                observer.disconnect();
+                observer = null;
+            }
+
+            const contentArea = getContentArea();
+            const sections = getActiveSections();
+            if (!contentArea || sections.length === 0 || !('IntersectionObserver' in window)) {
+                updateActiveNavByScroll();
+                return;
+            }
+
+            observer = new IntersectionObserver((entries) => {
+                if (suppressObserver) {
+                    return;
+                }
+                const visible = entries
+                    .filter((entry) => entry.isIntersecting)
+                    .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+                if (visible.length > 0) {
+                    const sectionBaseId = visible[0].target.dataset.section;
+                    if (sectionBaseId) {
+                        setActiveNav(sectionBaseId);
+                    }
+                }
+            }, {
+                root: contentArea,
+                threshold: [0.2, 0.35, 0.6],
+                rootMargin: "-15% 0px -55% 0px",
+            });
+
+            sections.forEach((section) => observer.observe(section));
+            updateActiveNavByScroll();
+        }
+
+        function switchRegion(regionId) {
+            activeRegion = regionId;
+            document.querySelectorAll('.region-content').forEach((el) => { el.style.display = 'none'; });
+            const regionPanel = document.getElementById('content-' + regionId);
+            if (regionPanel) {
+                regionPanel.style.display = 'block';
+            }
+
+            document.querySelectorAll('.region-btn').forEach((el) => el.classList.remove('active'));
+            const regionBtn = document.getElementById('btn-' + regionId);
+            if (regionBtn) {
+                regionBtn.classList.add('active');
+            }
+
+            const contentArea = getContentArea();
+            if (contentArea) {
+                contentArea.scrollTo({ top: 0, behavior: 'auto' });
+            }
+            setActiveNav('resumen');
+            reconnectObserver();
+        }
+
+        function scrollToSection(sectionBaseId) {
+            const targetId = sectionBaseId + '-' + activeRegion;
+            const el = document.getElementById(targetId);
+            if (!el) {
+                return;
+            }
+
+            suppressObserver = true;
+            setActiveNav(sectionBaseId);
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            window.setTimeout(() => {
+                suppressObserver = false;
+                updateActiveNavByScroll();
+            }, 450);
+        }
+
         function switchScenarioTab(regionCode, scenKey) {
-            // Hide all contents for this region
             const container = document.getElementById('scen-container-' + regionCode);
-            container.querySelectorAll('.scen-content').forEach(el => el.style.display = 'none');
+            if (!container) {
+                return;
+            }
+            container.querySelectorAll('.scen-content').forEach((el) => { el.style.display = 'none'; });
+            const target = document.getElementById('scen-content-' + regionCode + '-' + scenKey);
+            if (target) {
+                target.style.display = 'block';
+            }
 
-            // Show selected
-            document.getElementById('scen-content-' + regionCode + '-' + scenKey).style.display = 'block';
-
-            // Update tabs
             const tabContainer = document.getElementById('scen-tabs-' + regionCode);
-            tabContainer.querySelectorAll('.scen-tab').forEach(el => el.classList.remove('active'));
-            document.getElementById('tab-' + regionCode + '-' + scenKey).classList.add('active');
+            if (!tabContainer) {
+                return;
+            }
+            tabContainer.querySelectorAll('.scen-tab').forEach((el) => el.classList.remove('active'));
+            const tab = document.getElementById('tab-' + regionCode + '-' + scenKey);
+            if (tab) {
+                tab.classList.add('active');
+            }
         }
 
         function openLightbox(src) {
             const lb = document.getElementById('lightbox');
             const img = document.getElementById('lightbox-img');
+            if (!lb || !img) {
+                return;
+            }
             img.src = src;
             lb.style.display = 'flex';
         }
 
         function closeLightbox() {
-            document.getElementById('lightbox').style.display = 'none';
+            const lb = document.getElementById('lightbox');
+            if (lb) {
+                lb.style.display = 'none';
+            }
         }
 
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'Escape') {
+                closeLightbox();
+            }
         });
 
-        // Initialize activeRegion on load
         window.addEventListener('DOMContentLoaded', () => {
-            // Find the button with class 'active' to determine default region
             const activeBtn = document.querySelector('.region-btn.active');
             if (activeBtn) {
-                // Extract ID from btn-CODE
                 activeRegion = activeBtn.id.replace('btn-', '');
+            } else {
+                const firstBtn = document.querySelector('.region-btn');
+                if (firstBtn) {
+                    activeRegion = firstBtn.id.replace('btn-', '');
+                    firstBtn.classList.add('active');
+                }
             }
+
+            const contentArea = getContentArea();
+            if (contentArea) {
+                contentArea.addEventListener('scroll', () => {
+                    if (!isScrollTicking) {
+                        window.requestAnimationFrame(() => {
+                            updateActiveNavByScroll();
+                            isScrollTicking = false;
+                        });
+                        isScrollTicking = true;
+                    }
+                });
+            }
+
+            setActiveNav('resumen');
+            reconnectObserver();
+            window.addEventListener('resize', updateActiveNavByScroll);
         });
     </script>
 </head>
 <body>
+    <div class="app-shell-bg"></div>
 
     <header>
         <div class="logo-area">
             <h1>Análisis Climático · Balance Hídrico</h1>
-            <span>Producto 1 · Consultoría de Resiliencia Hídrica</span>
+            <span>Producto 1 · Tablero técnico para evaluación hidroclimática</span>
         </div>
         <div class="logo-strip">
 """
@@ -582,32 +895,30 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
     <div class="main-wrapper">
 
         <!-- SIDEBAR -->
-        <div class="sidebar">
+        <aside class="sidebar">
             <div class="sidebar-label">Navegación</div>
-            <div class="nav-item active" onclick="scrollToSection('resumen')">
-                <i class="fas fa-tachometer-alt"></i> Resumen Ejecutivo
-            </div>
-            <div class="nav-item" onclick="scrollToSection('escenarios')">
-                <i class="fas fa-layer-group"></i> Análisis por Escenario
-            </div>
-            <div class="nav-item" onclick="scrollToSection('series')">
-                <i class="fas fa-chart-line"></i> Series Temporales
-            </div>
-            <div class="nav-item" onclick="scrollToSection('estacionalidad')">
-                <i class="fas fa-calendar-alt"></i> Estacionalidad
-            </div>
-            <div class="nav-item" onclick="scrollToSection('mapas')">
-                <i class="fas fa-map"></i> Análisis Espacial
-            </div>
+"""
+    for section_id, icon, label in NAV_SECTIONS:
+        html += (
+            f'            <button class="nav-item" data-section="{section_id}" '
+            f'onclick="scrollToSection(\'{section_id}\')">'
+            f'<i class="fas {icon}"></i> {label}</button>\n'
+        )
 
-            <div style="flex:1"></div>
-            <div style="padding: 20px; font-size: 0.75rem; color: #94a3b8; text-align: center;">
-                &copy; 2025 Producto 1 · Balance Hídrico<br>Equipo de Consultoría
+    html += """            <div class="sidebar-note">
+                <b>Convención de interpretación</b>
+                Δ positivo indica incremento. Para balance hídrico (WB), valores más negativos representan mayor déficit.
             </div>
-        </div>
+            <div style="flex:1"></div>
+"""
+    html += (
+        f'            <div class="footer-note">&copy; {datetime.now().year} '
+        f'Producto 1 · Balance Hídrico<br>Tablero técnico de evaluación climática</div>\n'
+    )
+    html += """        </aside>
 
         <!-- CONTENT AREA -->
-        <div class="content-area">
+        <main id="contentArea" class="content-area">
 """
 
 
@@ -633,12 +944,26 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
         def img(category, filename):
             return f"{r_name}/{category}/{filename}"
 
+        base_period = (data or {}).get("base_period", "1981-2010")
+        data_source_label = data_source or r_code
+
         html += f"""
             <div id="content-{r_code}" class="region-content" style="display: {display_style};">
 
                 <!-- SECTION: RESUMEN EJECUTIVO -->
-                <div id="resumen-{r_code}" class="section-container">
-                    <div class="section-title"><i class="fas fa-clipboard-check"></i> Resumen Ejecutivo (Línea Base 1981-2010)</div>
+                <section id="resumen-{r_code}" class="section-container" data-section="resumen">
+                    <div class="section-title"><i class="fas fa-clipboard-check"></i> Resumen Ejecutivo (Línea Base {base_period})</div>
+                    <div class="section-subtitle">Síntesis de condiciones hidroclimáticas de referencia para <b>{r_name}</b>.</div>
+
+                    <div class="science-callout">
+                        <b><i class="fas fa-flask"></i> Marco metodológico</b>
+                        <div class="science-grid">
+                            <div><b>Región:</b> {r_name}</div>
+                            <div><b>Período base:</b> {base_period}</div>
+                            <div><b>Fuente climática:</b> {data_source_label}</div>
+                            <div><b>Unidades:</b> P/PET/WB en mm/año; Temperatura en °C</div>
+                        </div>
+                    </div>
 
                     <!-- Key Metrics -->
                     <div class="metrics-row">
@@ -646,46 +971,54 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
 
         if data and "baseline" in data:
             b = data["baseline"]
-
-
-            ai_val = b['AI']
-            cat_name, cat_color, cat_pct = get_ai_category(ai_val)
+            ai_val = _to_float(b.get("AI"))
+            ai_for_scale = ai_val if ai_val is not None else 0.65
+            cat_name, cat_color, cat_pct = get_ai_category(ai_for_scale)
+            dry_days = b.get("Dry_Days", b.get("dry_days", "N/A"))
 
             html += f"""
                         <div class="kpi-card">
                             <div class="kpi-label">Precipitación</div>
-                            <div class="kpi-value">{b['P_annual']['mean']} <span style="font-size:1rem; font-weight:400">mm</span></div>
-                            <div class="kpi-sub">σ = {b['P_annual']['std']} mm</div>
+                            <div class="kpi-value">{fmt_number((b.get('P_annual') or {}).get('mean'), 0)} <span style="font-size:0.92rem; font-weight:500">mm</span></div>
+                            <div class="kpi-sub">σ = {fmt_number((b.get('P_annual') or {}).get('std'), 0)} mm</div>
                         </div>
                         <div class="kpi-card">
                             <div class="kpi-label">Evapotranspiración</div>
-                            <div class="kpi-value">{b['PET_annual']['mean']} <span style="font-size:1rem; font-weight:400">mm</span></div>
-                            <div class="kpi-sub">Demanda Potencial</div>
+                            <div class="kpi-value">{fmt_number((b.get('PET_annual') or {}).get('mean'), 0)} <span style="font-size:0.92rem; font-weight:500">mm</span></div>
+                            <div class="kpi-sub">Demanda potencial atmosférica</div>
                         </div>
                         <div class="kpi-card">
                             <div class="kpi-label">Balance Hídrico</div>
-                            <div class="kpi-value">{b['WB_annual']['mean']} <span style="font-size:1rem; font-weight:400">mm</span></div>
-                            <div class="kpi-sub">Oferta Neta</div>
+                            <div class="kpi-value">{fmt_number((b.get('WB_annual') or {}).get('mean'), 0)} <span style="font-size:0.92rem; font-weight:500">mm</span></div>
+                            <div class="kpi-sub">Oferta neta (P - PET)</div>
                         </div>
                         <div class="kpi-card">
                             <div class="kpi-label">Temperatura</div>
-                            <div class="kpi-value">{b['Temp']}°C</div>
-                            <div class="kpi-sub">Media Anual</div>
+                            <div class="kpi-value">{fmt_number(b.get('Temp'), 1)}°C</div>
+                            <div class="kpi-sub">Promedio anual</div>
                         </div>
-                         <div class="kpi-card">
+                        <div class="kpi-card">
                             <div class="kpi-label">Aridez (AI)</div>
-                            <div class="kpi-value">{b['AI']}</div>
+                            <div class="kpi-value">{fmt_number(ai_val, 2)}</div>
                             <div class="ai-scale"><div class="ai-fill" style="width: {cat_pct}%; background-color: {cat_color};"></div></div>
                             <div class="ai-category" style="color: {cat_color};">{cat_name}</div>
                         </div>
                         <div class="kpi-card">
-                            <div class="kpi-label">Racha Seca (CDD)</div>
-                            <div class="kpi-value">{b['CDD']} <span style="font-size:1rem; font-weight:400">días</span></div>
-                            <div class="kpi-sub">Máximo consecutivo</div>
+                            <div class="kpi-label">Sequedad</div>
+                            <div class="kpi-value">{fmt_number(dry_days, 0)} <span style="font-size:0.92rem; font-weight:500">días</span></div>
+                            <div class="kpi-sub">CDD: {fmt_number(b.get('CDD'), 0)} días consecutivos máximos</div>
+                        </div>
+            """
+        else:
+            html += """
+                        <div class="card full-width">
+                            <div class="card-padding" style="color: #7f95a5;">
+                                No se encontró <code>key_numbers.json</code> para esta región. Los gráficos se mantienen visibles, pero faltan KPIs resumidos.
+                            </div>
                         </div>
             """
 
-        html += """
+        html += f"""
                     </div>
 
                     <!-- Warming Stripes -->
@@ -693,32 +1026,38 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
                         <div class="card-header">
                             <span><i class="fas fa-temperature-high"></i> Evolución Histórica y Proyectada (Warming Stripes)</span>
                         </div>
-                        <div class="img-wrapper img-contain" style="height: 220px;" onclick="openLightbox('{}')">
-                            <img src="{}" loading="lazy">
+                        <div class="img-wrapper img-contain" style="height: 220px;" onclick="openLightbox('{img('01_Series_Temporales_Temperatura', 'warming_stripes_anomalias.png')}')">
+                            <img src="{img('01_Series_Temporales_Temperatura', 'warming_stripes_anomalias.png')}" loading="lazy">
                         </div>
                     </div>
-                </div>
+                </section>
 
                 <!-- SECTION: ESCENARIOS -->
-                <div id="escenarios-{code}" class="section-container">
+                <section id="escenarios-{r_code}" class="section-container" data-section="escenarios">
                     <div class="section-title"><i class="fas fa-layer-group"></i> Análisis por Escenario</div>
-
-                    <div class="scenario-tabs" id="scen-tabs-{code}">
-                        <div id="tab-{code}-ssp126" class="scen-tab active" onclick="switchScenarioTab('{code}', 'ssp126')">SSP1-2.6 (Optimista)</div>
-                        <div id="tab-{code}-ssp370" class="scen-tab" onclick="switchScenarioTab('{code}', 'ssp370')">SSP3-7.0 (Medio)</div>
-                        <div id="tab-{code}-ssp585" class="scen-tab" onclick="switchScenarioTab('{code}', 'ssp585')">SSP5-8.5 (Pesimista)</div>
+                    <div class="section-subtitle">Comparación entre trayectorias de emisiones y su señal hidroclimática proyectada.</div>
+                    <div class="scenario-legend">
+                        <span class="legend-dot pos">Incremento (Δ positivo)</span>
+                        <span class="legend-dot neg">Reducción / déficit (Δ negativo)</span>
+                        <span>Horizontes: cercano 2021-2050, medio 2041-2070, tardío 2071-2100.</span>
                     </div>
 
-                    <div id="scen-container-{code}">
-        """.format(
-            img('01_Series_Temporales_Temperatura', 'warming_stripes_anomalias.png'),
-            img('01_Series_Temporales_Temperatura', 'warming_stripes_anomalias.png'),
-            code=r_code
-        )
+                    <div class="scenario-tabs" id="scen-tabs-{r_code}">
+        """
+        for i, (scen_key, scen_label, scen_risk) in enumerate(SCENARIOS):
+            active_class = " active" if i == 0 else ""
+            html += (
+                f'                        <button id="tab-{r_code}-{scen_key}" class="scen-tab{active_class}" '
+                f'onclick="switchScenarioTab(\'{r_code}\', \'{scen_key}\')">{scen_label} ({scen_risk})</button>\n'
+            )
+        html += f"""
+                    </div>
+
+                    <div id="scen-container-{r_code}">
+        """
 
 
-        scenarios = [("ssp126", "SSP1-2.6"), ("ssp370", "SSP3-7.0"), ("ssp585", "SSP5-8.5")]
-        for i, (scen_key, scen_label) in enumerate(scenarios):
+        for i, (scen_key, scen_label, scen_risk) in enumerate(SCENARIOS):
             display = "block" if i == 0 else "none"
 
 
@@ -732,43 +1071,40 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
 
                 for pid, plabel in zip(periods, period_labels):
                     p = scen_data.get(pid, {})
-                    dWB = p.get('delta_WB_mm', 0)
+                    dWB_val = _to_float(p.get('delta_WB_mm'))
+                    dWB = dWB_val if dWB_val is not None else 0.0
                     cls_wb = "val-neg" if dWB < 0 else "val-pos"
 
                     table_rows += f"""
                         <tr>
                             <td><b>{plabel}</b></td>
-                            <td>+{p.get('delta_Temp', 'N/A')}°C</td>
-                            <td>{p.get('delta_P_mm', 0):+} mm ({p.get('delta_P_pct', 0):+}%)</td>
-                            <td class="{cls_wb}">{dWB:+} mm ({p.get('delta_WB_pct', 0):+}%)</td>
-                            <td>{p.get('delta_DryDays', 0):+} días</td>
-                            <td>{p.get('delta_CDD', 0):+} días</td>
+                            <td>{fmt_number(p.get('delta_Temp'), 1, signed=True, suffix='°C')}</td>
+                            <td>{fmt_number(p.get('delta_P_mm'), 0, signed=True, suffix=' mm')} ({fmt_number(p.get('delta_P_pct'), 1, signed=True, suffix='%')})</td>
+                            <td class="{cls_wb}">{fmt_number(dWB, 0, signed=True, suffix=' mm')} ({fmt_number(p.get('delta_WB_pct'), 1, signed=True, suffix='%')})</td>
+                            <td>{fmt_number(p.get('delta_DryDays'), 0, signed=True, suffix=' días')}</td>
+                            <td>{fmt_number(p.get('delta_CDD'), 0, signed=True, suffix=' días')}</td>
                         </tr>
                     """
+            if not table_rows:
+                table_rows = """
+                        <tr>
+                            <td colspan="6" style="color:#7f95a5;">No hay datos de proyección resumidos para este escenario.</td>
+                        </tr>
+                """
 
 
             bar_chart = img('09_Cambios_Balance_Hidrico', f'delta_WB_{scen_key}.png')
-
-            map_near = img(f'21_Mapas_Mensuales_Delta_{scen_key.upper()}', f'delta_WB_mensual_{scen_key}_cercano.png')
-            map_mid = img(f'21_Mapas_Mensuales_Delta_{scen_key.upper()}', f'delta_WB_mensual_{scen_key}_medio.png')
-            map_late = img(f'21_Mapas_Mensuales_Delta_{scen_key.upper()}', f'delta_WB_mensual_{scen_key}_tardio.png')
-
-
-            if scen_key == 'ssp370':
-                map_near = img('22_Mapas_Mensuales_Delta_SSP370', f'delta_WB_mensual_{scen_key}_cercano.png')
-                map_mid = img('22_Mapas_Mensuales_Delta_SSP370', f'delta_WB_mensual_{scen_key}_medio.png')
-                map_late = img('22_Mapas_Mensuales_Delta_SSP370', f'delta_WB_mensual_{scen_key}_tardio.png')
-            elif scen_key == 'ssp585':
-                map_near = img('23_Mapas_Mensuales_Delta_SSP585', f'delta_WB_mensual_{scen_key}_cercano.png')
-                map_mid = img('23_Mapas_Mensuales_Delta_SSP585', f'delta_WB_mensual_{scen_key}_medio.png')
-                map_late = img('23_Mapas_Mensuales_Delta_SSP585', f'delta_WB_mensual_{scen_key}_tardio.png')
+            monthly_dir = SCENARIO_MONTHLY_DELTA_DIR.get(scen_key, "21_Mapas_Mensuales_Delta_SSP126")
+            map_near = img(monthly_dir, f'delta_WB_mensual_{scen_key}_cercano.png')
+            map_mid = img(monthly_dir, f'delta_WB_mensual_{scen_key}_medio.png')
+            map_late = img(monthly_dir, f'delta_WB_mensual_{scen_key}_tardio.png')
 
             html += f"""
                         <div id="scen-content-{r_code}-{scen_key}" class="scen-content" style="display: {display};">
                             <div class="dashboard-grid">
                                 <!-- Evolution Table -->
                                 <div class="card full-width">
-                                    <div class="card-header">Evolución Temporal de Impactos ({scen_label})</div>
+                                    <div class="card-header">Evolución Temporal de Impactos ({scen_label} · Riesgo {scen_risk})</div>
                                     <div class="table-container">
                                         <table>
                                             <thead>
@@ -821,11 +1157,12 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
 
         html += """
                     </div>
-                </div>
+                </section>
 
                 <!-- SECTION: SERIES TEMPORALES -->
-                <div id="series-{code}" class="section-container">
+                <section id="series-{code}" class="section-container" data-section="series">
                     <div class="section-title"><i class="fas fa-chart-line"></i> Series Temporales (1980-2100)</div>
+                    <div class="section-subtitle">Comportamiento temporal histórico-proyectado de variables clave.</div>
 
                     <div class="dashboard-grid">
                         <div class="card">
@@ -855,11 +1192,12 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
                             <div class="img-wrapper" onclick="openLightbox('{}')"><img src="{}" loading="lazy"></div>
                         </div>
                     </div>
-                </div>
+                </section>
 
                 <!-- SECTION: ESTACIONALIDAD -->
-                <div id="estacionalidad-{code}" class="section-container">
+                <section id="estacionalidad-{code}" class="section-container" data-section="estacionalidad">
                     <div class="section-title"><i class="fas fa-calendar-alt"></i> Ciclo Estacional y Cambios</div>
+                    <div class="section-subtitle">Patrones intra-anuales y desplazamientos estacionales esperados.</div>
 
                     <div class="dashboard-grid">
                         <div class="card full-width">
@@ -889,12 +1227,12 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
                              <div class="img-caption">Alteración en patrones estacionales</div>
                         </div>
                     </div>
-                </div>
+                </section>
 
                 <!-- SECTION: MAPAS -->
-                <div id="mapas-{code}" class="section-container">
+                <section id="mapas-{code}" class="section-container" data-section="mapas">
                     <div class="section-title"><i class="fas fa-map-marked-alt"></i> Análisis Espacial de Impactos</div>
-                    <div style="margin-bottom: 20px; color: #64748b;">Mostrando horizonte tardío (2071-2100) bajo escenario pesimista (SSP5-8.5) para resaltar riesgos máximos.</div>
+                    <div class="section-subtitle">Mapas sintéticos del horizonte tardío (2071-2100) bajo SSP5-8.5 para visualizar presiones máximas.</div>
 
                     <div class="dashboard-grid">
                         <div class="card">
@@ -913,7 +1251,7 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
                             </div>
                         </div>
                     </div>
-                </div>
+                </section>
 
             </div>
         """.format(
@@ -940,7 +1278,7 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
         )
 
     html += """
-        </div> <!-- End Content Area -->
+        </main> <!-- End Content Area -->
     </div> <!-- End Main Wrapper -->
 
     <!-- Lightbox -->
