@@ -12,6 +12,8 @@ __pycache__/
 # Datos Climáticos Descargados (Se descargan desde la App)
 inputs/FDAT/
 inputs/FODESNA/
+inputs/FMPLPT/
+inputs/Mocha/
 inputs/Mi_Area/
 inputs/testfinal/
 
@@ -19,3 +21,4 @@ inputs/testfinal/
 outputs/
 reports/
 testfinal/
+Mocha/
