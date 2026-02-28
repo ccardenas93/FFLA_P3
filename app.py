@@ -12,8 +12,13 @@ from pathlib import Path
 
 import folium
 import geopandas as gpd
+import numpy as np
 import streamlit as st
 import streamlit.components.v1 as components
+from netCDF4 import Dataset
+from shapely import wkb as shapely_wkb
+from shapely.geometry import box
+from shapely.prepared import prep
 from streamlit_folium import st_folium
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -91,12 +96,229 @@ def load_uploaded_geometry(path):
     return gdf
 
 
+def geometry_union(geoseries):
+    if hasattr(geoseries, "union_all"):
+        return geoseries.union_all()
+    return geoseries.unary_union
+
+
 def render_geometry_map(gdf):
+    return render_geometry_map_with_grid(gdf, grid_preview=None)
+
+
+def render_geometry_map_with_grid(gdf, grid_preview=None):
     gdf_proj = gdf.to_crs(epsg=3857)
     centroid = gdf_proj.geometry.centroid.to_crs(epsg=4326)
     m = folium.Map(location=[centroid.y.mean(), centroid.x.mean()], zoom_start=8)
-    folium.GeoJson(gdf.__geo_interface__).add_to(m)
+    folium.GeoJson(gdf.__geo_interface__, name="Área de estudio").add_to(m)
+
+    if grid_preview and grid_preview.get("preview_cells"):
+        grid_layer = folium.FeatureGroup(name="Pixeles NC (preview)", show=True)
+        for y0, x0, y1, x1 in grid_preview["preview_cells"]:
+            folium.Rectangle(
+                bounds=[[y0, x0], [y1, x1]],
+                color="#2563eb",
+                weight=1,
+                fill=False,
+                opacity=0.45,
+            ).add_to(grid_layer)
+        grid_layer.add_to(m)
+        folium.LayerControl(collapsed=True).add_to(m)
+
+    minx, miny, maxx, maxy = gdf.total_bounds
+    if minx == maxx:
+        minx -= 0.01
+        maxx += 0.01
+    if miny == maxy:
+        miny -= 0.01
+        maxy += 0.01
+    m.fit_bounds([[miny, minx], [maxy, maxx]])
+
     st_folium(m, width=700, height=400, returned_objects=[])
+
+
+def resolve_grid_nc_path(data_source):
+    candidates = [
+        os.path.join(settings.INPUTS_DIR, data_source, "historical_ecuador", "pr_historical_ecuador.nc"),
+        os.path.join(settings.INPUTS_DIR, data_source, "historical_ecuador", "pr.nc"),
+    ]
+    if data_source == "FMPLPT":
+        candidates.extend(
+            [
+                os.path.join(settings.INPUTS_DIR, "FDAT", "historical_ecuador", "pr_historical_ecuador.nc"),
+                os.path.join(settings.INPUTS_DIR, "FDAT", "historical_ecuador", "pr.nc"),
+            ]
+        )
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    return None
+
+
+@st.cache_data(show_spinner=False)
+def load_grid_axes(nc_path):
+    with Dataset(nc_path, "r") as ds:
+        if "lat" not in ds.variables or "lon" not in ds.variables:
+            raise ValueError(f"Grid file sin ejes lat/lon: {nc_path}")
+        lat = np.asarray(ds.variables["lat"][:], dtype=float).ravel()
+        lon = np.asarray(ds.variables["lon"][:], dtype=float).ravel()
+
+    lat = np.unique(lat)
+    lon = np.unique(lon)
+    lat.sort()
+    lon.sort()
+    if lat.size == 0 or lon.size == 0:
+        raise ValueError("Grid vacío en NetCDF")
+    return lat, lon
+
+
+def centers_to_edges(axis):
+    axis = np.asarray(axis, dtype=float)
+    if axis.size == 1:
+        step = 0.1
+        return np.array([axis[0] - step / 2, axis[0] + step / 2], dtype=float)
+
+    edges = np.empty(axis.size + 1, dtype=float)
+    edges[1:-1] = (axis[:-1] + axis[1:]) / 2.0
+    edges[0] = axis[0] - (axis[1] - axis[0]) / 2.0
+    edges[-1] = axis[-1] + (axis[-1] - axis[-2]) / 2.0
+    return edges
+
+
+@st.cache_data(show_spinner=False)
+def compute_grid_preview(geometry_wkb, data_source, max_preview_cells=900):
+    nc_path = resolve_grid_nc_path(data_source)
+    if not nc_path:
+        return {"error": f"No se encontró NetCDF de grilla para {data_source}."}
+
+    lat, lon = load_grid_axes(nc_path)
+    lat_edges = centers_to_edges(lat)
+    lon_edges = centers_to_edges(lon)
+    dlat = float(np.median(np.abs(np.diff(lat)))) if lat.size > 1 else 0.0
+    dlon = float(np.median(np.abs(np.diff(lon)))) if lon.size > 1 else 0.0
+
+    geom = shapely_wkb.loads(geometry_wkb)
+    prepared = prep(geom)
+    minx, miny, maxx, maxy = geom.bounds
+
+    lat_mask = (lat_edges[:-1] <= maxy) & (lat_edges[1:] >= miny)
+    lon_mask = (lon_edges[:-1] <= maxx) & (lon_edges[1:] >= minx)
+    lat_idx = np.where(lat_mask)[0]
+    lon_idx = np.where(lon_mask)[0]
+
+    bbox_cells = int(lat_idx.size * lon_idx.size)
+    touched_cells = 0
+    preview_cells = []
+
+    for i in lat_idx:
+        y0a, y1a = lat_edges[i], lat_edges[i + 1]
+        y0, y1 = (y0a, y1a) if y0a <= y1a else (y1a, y0a)
+        for j in lon_idx:
+            x0a, x1a = lon_edges[j], lon_edges[j + 1]
+            x0, x1 = (x0a, x1a) if x0a <= x1a else (x1a, x0a)
+            cell = box(x0, y0, x1, y1)
+            if prepared.intersects(cell):
+                touched_cells += 1
+                if len(preview_cells) < max_preview_cells:
+                    preview_cells.append((y0, x0, y1, x1))
+
+    return {
+        "source_nc": nc_path,
+        "grid_shape": (int(lat.size), int(lon.size)),
+        "grid_total_cells": int(lat.size * lon.size),
+        "resolution_deg": (dlat, dlon),
+        "bbox_cells": bbox_cells,
+        "touched_cells": touched_cells,
+        "preview_cells": preview_cells,
+        "preview_is_sampled": touched_cells > len(preview_cells),
+    }
+
+
+def infer_data_source(gdf):
+    """Infer best source by AOI overlap with known reference regions."""
+    source_options = ["FODESNA", "FMPLPT"]
+    target = geometry_union(gdf.geometry)
+    if target.is_empty:
+        return source_options[0], {}, "default"
+    if not target.is_valid:
+        target = target.buffer(0)
+    target_proj = gpd.GeoSeries([target], crs="EPSG:4326").to_crs(epsg=3857).iloc[0]
+    target_area = float(target_proj.area) if target_proj.area > 0 else 0.0
+
+    overlap_ratios = {}
+    overlap_areas = {}
+    method = "overlap"
+    for code in source_options:
+        ref_proj = None
+        try:
+            shp_path = settings.REGIONS.get(code, {}).get("shapefile")
+            if shp_path and os.path.exists(shp_path):
+                ref = gpd.read_file(shp_path)
+                if not ref.empty and ref.crs is not None:
+                    if ref.crs.to_epsg() != 4326:
+                        ref = ref.to_crs("EPSG:4326")
+                    ref_geom = geometry_union(ref.geometry)
+                    if not ref_geom.is_empty:
+                        if not ref_geom.is_valid:
+                            ref_geom = ref_geom.buffer(0)
+                        ref_proj = gpd.GeoSeries([ref_geom], crs="EPSG:4326").to_crs(epsg=3857).iloc[0]
+        except Exception:
+            ref_proj = None
+
+        if ref_proj is None:
+            nc_path = resolve_grid_nc_path(code)
+            if not nc_path:
+                continue
+            try:
+                lat, lon = load_grid_axes(nc_path)
+                lat_edges = centers_to_edges(lat)
+                lon_edges = centers_to_edges(lon)
+                extent_geom = box(
+                    float(np.min(lon_edges)),
+                    float(np.min(lat_edges)),
+                    float(np.max(lon_edges)),
+                    float(np.max(lat_edges)),
+                )
+                ref_proj = gpd.GeoSeries([extent_geom], crs="EPSG:4326").to_crs(epsg=3857).iloc[0]
+                method = "nc_extent"
+            except Exception:
+                continue
+
+        inter_area = float(target_proj.intersection(ref_proj).area)
+        overlap_areas[code] = inter_area
+        overlap_ratios[code] = (inter_area / target_area) if target_area > 0 else 0.0
+
+    if overlap_areas:
+        inferred = max(overlap_areas, key=overlap_areas.get)
+        if overlap_areas.get(inferred, 0.0) > 0:
+            return inferred, overlap_ratios, method
+
+    # Fallback: choose source whose reference extent centroid is closest to AOI centroid.
+    target_centroid = target_proj.centroid
+    distances = {}
+    for code in source_options:
+        nc_path = resolve_grid_nc_path(code)
+        if not nc_path:
+            continue
+        try:
+            lat, lon = load_grid_axes(nc_path)
+            lat_edges = centers_to_edges(lat)
+            lon_edges = centers_to_edges(lon)
+            extent_geom = box(
+                float(np.min(lon_edges)),
+                float(np.min(lat_edges)),
+                float(np.max(lon_edges)),
+                float(np.max(lat_edges)),
+            )
+            extent_proj = gpd.GeoSeries([extent_geom], crs="EPSG:4326").to_crs(epsg=3857).iloc[0]
+            distances[code] = float(target_centroid.distance(extent_proj.centroid))
+        except Exception:
+            continue
+    if distances:
+        inferred = min(distances, key=distances.get)
+        return inferred, overlap_ratios, "distance"
+
+    return source_options[0], overlap_ratios, "default"
 
 
 def resolve_output_root(custom_out):
@@ -238,7 +460,58 @@ if mode == "Nueva Área de Interés (Subir SHP/GPKG)":
                     st.code(traceback.format_exc())
                 else:
                     st.success("✅ Geometría cargada correctamente.")
-                    render_geometry_map(gdf)
+
+                    st.write("### 🧩 Vista previa de píxeles NetCDF")
+                    auto_source, overlap_ratios, infer_method = infer_data_source(gdf)
+                    source_options = ["FODESNA", "FMPLPT"]
+                    default_source_index = source_options.index(auto_source) if auto_source in source_options else 0
+                    data_source_opt = st.radio(
+                        "📡 Fuente de Datos Climáticos",
+                        source_options,
+                        index=default_source_index,
+                        help="Seleccione el conjunto de datos a utilizar. FODESNA para la provincia de Napo. FMPLPT para la provincia de Tungurahua.",
+                    )
+                    if overlap_ratios:
+                        ratio_text = ", ".join(
+                            f"{k}: {overlap_ratios.get(k, 0.0):.1%}" for k in source_options
+                        )
+                        method_txt = {
+                            "overlap": "solape con polígonos de referencia",
+                            "nc_extent": "solape con extensión de grillas NC",
+                            "distance": "distancia a extensión de grillas NC",
+                            "default": "valor por defecto",
+                        }.get(infer_method, infer_method)
+                        st.caption(
+                            f"Selección automática sugerida: `{auto_source}` "
+                            f"({method_txt}; solape AOI: {ratio_text}). Puede cambiarla manualmente."
+                        )
+                    else:
+                        st.caption(
+                            f"Selección automática sugerida: `{auto_source}`. "
+                            "No se pudo calcular solape, puede cambiarla manualmente."
+                        )
+                    geom_wkb = geometry_union(gdf.geometry).wkb
+                    grid_preview = compute_grid_preview(geom_wkb, data_source_opt)
+                    if grid_preview.get("error"):
+                        st.warning(grid_preview["error"])
+                        render_geometry_map_with_grid(gdf, grid_preview=None)
+                    else:
+                        c1, c2, c3, c4 = st.columns(4)
+                        with c1:
+                            st.metric("Resolución lat/lon", f"{grid_preview['resolution_deg'][0]:.4f}° / {grid_preview['resolution_deg'][1]:.4f}°")
+                        with c2:
+                            st.metric("Pixeles (grid completo)", f"{grid_preview['grid_total_cells']:,}")
+                        with c3:
+                            st.metric("Pixeles en bbox AOI", f"{grid_preview['bbox_cells']:,}")
+                        with c4:
+                            st.metric("Pixeles que tocarían AOI", f"{grid_preview['touched_cells']:,}")
+
+                        st.caption(
+                            f"Fuente de grilla: `{grid_preview['source_nc']}`"
+                            + (" | El overlay muestra una muestra de celdas." if grid_preview["preview_is_sampled"] else "")
+                        )
+                        render_geometry_map_with_grid(gdf, grid_preview=grid_preview)
+                    st.write("---")
 
                     col1, col2 = st.columns(2)
                     with col1:
@@ -256,12 +529,6 @@ if mode == "Nueva Área de Interés (Subir SHP/GPKG)":
                     if (region_name_display or "").strip() != region_folder:
                         st.caption(f"Se usará la carpeta segura: `{region_folder}`")
 
-                    st.write("---")
-                    data_source_opt = st.radio(
-                        "📡 Fuente de Datos Climáticos",
-                        ["FODESNA", "FMPLPT"],
-                        help="Seleccione el conjunto de datos a utilizar. FODESNA para la provincia de Napo. FMPLPT para la provincia de Tungurahua.",
-                    )
                     st.write("---")
 
                     if st.button("🚀 Ejecutar Análisis", type="primary"):
