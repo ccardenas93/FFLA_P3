@@ -11,6 +11,13 @@ import json
 import shutil
 import subprocess
 
+try:
+    import numpy as np
+    import xarray as xr
+except Exception:
+    np = None
+    xr = None
+
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 from organized.config import settings
@@ -53,6 +60,11 @@ SCENARIO_MONTHLY_DELTA_DIR = {
     "ssp585": "23_Mapas_Mensuales_Delta_SSP585",
 }
 
+LEGACY_REGION_DIR_ALIASES = {
+    "FMPLPT": ["Tungurahua", "FMPLPT"],
+    "FODESNA": ["Napo", "FODESNA"],
+}
+
 def load_key_numbers_json(file_path):
     """Reads key numbers JSON file."""
     if not os.path.exists(file_path):
@@ -88,6 +100,115 @@ def fmt_number(value, decimals=1, signed=False, suffix=""):
     if decimals == 0:
         fmt = f"{{:{'+' if signed else ''}.0f}}"
     return f"{fmt.format(num)}{suffix}"
+
+
+def _annual_sum_spatial_mean(ds, monthly_var):
+    if xr is None or np is None or monthly_var not in ds.data_vars:
+        return [], []
+
+    da = ds[monthly_var]
+    if "time" not in da.dims:
+        return [], []
+
+    for dim in ("lat", "lon"):
+        if dim in da.dims:
+            da = da.mean(dim=dim, skipna=True)
+
+    annual = da.groupby("time.year").sum("time", skipna=True)
+    years = np.asarray(annual["year"].values, dtype=int)
+    values = np.asarray(annual.values, dtype=float)
+    mask = np.isfinite(values)
+    return years[mask].tolist(), np.round(values[mask], 2).tolist()
+
+
+def build_region_plotly_timeseries(region_output_dir):
+    if xr is None or np is None:
+        return {}
+
+    source_files = {
+        "Histórico": os.path.join(region_output_dir, "historical_ecuador", "wb_agg_historical_ecuador.nc"),
+        "SSP1-2.6": os.path.join(region_output_dir, "ssp126_ecuador", "wb_agg_ssp126_ecuador.nc"),
+        "SSP3-7.0": os.path.join(region_output_dir, "ssp370_ecuador", "wb_agg_ssp370_ecuador.nc"),
+        "SSP5-8.5": os.path.join(region_output_dir, "ssp585_ecuador", "wb_agg_ssp585_ecuador.nc"),
+    }
+    scenario_colors = {
+        "Histórico": "#334155",
+        "SSP1-2.6": "#0f9d73",
+        "SSP3-7.0": "#d97706",
+        "SSP5-8.5": "#dc2626",
+    }
+    series_defs = {
+        "precip": {"title": "Precipitación Anual", "unit": "mm/año", "var": "p_mon"},
+        "pet": {"title": "Evapotranspiración Potencial Anual", "unit": "mm/año", "var": "pet_mon"},
+        "wb": {"title": "Balance Hídrico Anual", "unit": "mm/año", "var": "wb_mon"},
+        "ai": {"title": "Índice de Aridez Anual (P/PET)", "unit": "adimensional", "var": None},
+    }
+    result = {key: {"title": cfg["title"], "unit": cfg["unit"], "traces": []} for key, cfg in series_defs.items()}
+
+    for scen_label, nc_path in source_files.items():
+        if not os.path.exists(nc_path):
+            continue
+        try:
+            with xr.open_dataset(nc_path) as ds:
+                annual_cache = {}
+                for key, cfg in series_defs.items():
+                    if cfg["var"]:
+                        years, values = _annual_sum_spatial_mean(ds, cfg["var"])
+                        annual_cache[cfg["var"]] = (years, values)
+                        if years:
+                            result[key]["traces"].append(
+                                {
+                                    "name": scen_label,
+                                    "x": years,
+                                    "y": values,
+                                    "color": scenario_colors.get(scen_label, "#2563eb"),
+                                }
+                            )
+                p_years, p_vals = annual_cache.get("p_mon", ([], []))
+                pet_years, pet_vals = annual_cache.get("pet_mon", ([], []))
+                if p_years and pet_years:
+                    p_by_year = {y: v for y, v in zip(p_years, p_vals)}
+                    pet_by_year = {y: v for y, v in zip(pet_years, pet_vals)}
+                    common_years = sorted(set(p_by_year).intersection(pet_by_year))
+                    ai_values = []
+                    ai_years = []
+                    for year in common_years:
+                        pet_value = pet_by_year[year]
+                        if pet_value and np.isfinite(pet_value) and pet_value != 0:
+                            ai_years.append(year)
+                            ai_values.append(round(float(p_by_year[year] / pet_value), 3))
+                    if ai_years:
+                        result["ai"]["traces"].append(
+                            {
+                                "name": scen_label,
+                                "x": ai_years,
+                                "y": ai_values,
+                                "color": scenario_colors.get(scen_label, "#2563eb"),
+                            }
+                        )
+        except Exception as exc:
+            print(f"⚠️ No se pudo generar serie interactiva desde {nc_path}: {exc}")
+            continue
+
+    return result
+
+
+def resolve_region_output_dir(output_root, region_code, region_name, region_info):
+    candidates = []
+    explicit = (region_info or {}).get("output_path")
+    if explicit:
+        candidates.append(explicit)
+    candidates.append(os.path.join(output_root, region_name))
+    candidates.append(os.path.join(output_root, region_code))
+    for alias in LEGACY_REGION_DIR_ALIASES.get(region_code, []):
+        candidates.append(os.path.join(output_root, alias))
+
+    for path in candidates:
+        if not path:
+            continue
+        if os.path.isdir(path):
+            return path
+    return os.path.join(output_root, region_name)
 
 def prepare_logo_assets(output_root):
     """Copies logos into outputs/assets/logos and returns relative paths."""
@@ -149,6 +270,7 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <style>
         :root {
             --primary: #0c2a38;
@@ -406,6 +528,24 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
 
         .card-padding { padding: 16px; }
 
+        .plotly-chart {
+            width: 100%;
+            height: 285px;
+        }
+
+        .plotly-fallback {
+            width: 100%;
+            height: 285px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #7f95a5;
+            font-size: 0.84rem;
+            padding: 10px;
+            background: #f6fbff;
+        }
+
         .science-callout {
             background: linear-gradient(135deg, rgba(0, 127, 143, 0.10), rgba(0, 127, 143, 0.02));
             border: 1px solid #b7d7e3;
@@ -650,6 +790,8 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
         let observer = null;
         let isScrollTicking = false;
         let suppressObserver = false;
+        const plotlySeriesData = __PLOTLY_SERIES_DATA__;
+        const plotlyChartOrder = ["precip", "pet", "wb", "ai"];
 
         function getContentArea() {
             return document.getElementById("contentArea");
@@ -758,6 +900,7 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
             }
             setActiveNav('resumen');
             reconnectObserver();
+            renderPlotlyTimeseries(regionId);
         }
 
         function scrollToSection(sectionBaseId) {
@@ -796,6 +939,65 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
             if (tab) {
                 tab.classList.add('active');
             }
+        }
+
+        function renderPlotlyTimeseries(regionCode) {
+            const regionData = plotlySeriesData ? plotlySeriesData[regionCode] : null;
+            plotlyChartOrder.forEach((key) => {
+                const divId = 'plotly-ts-' + key + '-' + regionCode;
+                const target = document.getElementById(divId);
+                if (!target) {
+                    return;
+                }
+
+                const chartData = regionData ? regionData[key] : null;
+                if (!window.Plotly || !chartData || !Array.isArray(chartData.traces) || chartData.traces.length === 0) {
+                    target.innerHTML = '<div class="plotly-fallback">Serie interactiva no disponible para esta variable.</div>';
+                    return;
+                }
+
+                const traces = chartData.traces.map((trace) => ({
+                    x: trace.x,
+                    y: trace.y,
+                    mode: 'lines',
+                    type: 'scatter',
+                    name: trace.name,
+                    line: { color: trace.color || '#2563eb', width: 2 },
+                    hovertemplate: '%{x}: %{y:.2f} ' + (chartData.unit || '') + '<extra>%{fullData.name}</extra>',
+                }));
+
+                const layout = {
+                    title: { text: chartData.title || key, font: { size: 14, color: '#0c2a38' } },
+                    paper_bgcolor: 'rgba(0,0,0,0)',
+                    plot_bgcolor: '#ffffff',
+                    margin: { l: 55, r: 20, t: 42, b: 42 },
+                    xaxis: {
+                        title: 'Año',
+                        gridcolor: '#e2edf4',
+                        zeroline: false,
+                        rangeselector: {
+                            buttons: [
+                                { count: 30, label: '30a', step: 'year', stepmode: 'backward' },
+                                { count: 60, label: '60a', step: 'year', stepmode: 'backward' },
+                                { step: 'all', label: 'Todo' },
+                            ],
+                        },
+                    },
+                    yaxis: {
+                        title: chartData.unit || '',
+                        gridcolor: '#e2edf4',
+                        zeroline: false,
+                    },
+                    legend: { orientation: 'h', y: 1.15, x: 0, bgcolor: 'rgba(0,0,0,0)' },
+                    hovermode: 'x unified',
+                };
+
+                Plotly.react(target, traces, layout, {
+                    responsive: true,
+                    displaylogo: false,
+                    modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d', 'toggleSpikelines'],
+                });
+            });
         }
 
         function openLightbox(src) {
@@ -848,6 +1050,7 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
 
             setActiveNav('resumen');
             reconnectObserver();
+            renderPlotlyTimeseries(activeRegion);
             window.addEventListener('resize', updateActiveNavByScroll);
         });
     </script>
@@ -879,6 +1082,7 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
         if code not in region_keys:
             region_keys.append(code)
 
+    interactive_timeseries_by_region = {}
 
     first = True
     for r_code in region_keys:
@@ -933,16 +1137,22 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
 
         r_info = active_regions[r_code]
         r_name = r_info['name']
+        region_output_dir = resolve_region_output_dir(output_root, r_code, r_name, r_info)
+        interactive_timeseries_by_region[r_code] = build_region_plotly_timeseries(region_output_dir)
         display_style = "block" if first else "none"
         first = False
 
+        region_rel = os.path.relpath(region_output_dir, output_root).replace("\\", "/")
+        if region_rel.startswith(".."):
+            region_rel = r_name
 
-        json_path = os.path.join(output_root, r_name, "24_Resumen_Ejecutivo", "key_numbers.json")
+
+        json_path = os.path.join(region_output_dir, "24_Resumen_Ejecutivo", "key_numbers.json")
         data = load_key_numbers_json(json_path)
 
 
         def img(category, filename):
-            return f"{r_name}/{category}/{filename}"
+            return f"{region_rel}/{category}/{filename}"
 
         base_period = (data or {}).get("base_period", "1981-2010")
         data_source_label = data_source or r_code
@@ -1163,32 +1373,58 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
                 <section id="series-{code}" class="section-container" data-section="series">
                     <div class="section-title"><i class="fas fa-chart-line"></i> Series Temporales (1980-2100)</div>
                     <div class="section-subtitle">Comportamiento temporal histórico-proyectado de variables clave.</div>
+                    <div class="science-callout">
+                        <b><i class="fas fa-mouse-pointer"></i> Panel interactivo</b>
+                        <div class="science-grid">
+                            <div>Use zoom, paneo y selección temporal para inspeccionar periodos específicos.</div>
+                            <div>Las líneas incluyen histórico y escenarios SSP en el mismo eje para comparación directa.</div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid" style="margin-bottom:18px;">
+                        <div class="card">
+                            <div class="card-header">Plotly: Precipitación Anual</div>
+                            <div id="plotly-ts-precip-{code}" class="plotly-chart"></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">Plotly: Evapotranspiración Potencial</div>
+                            <div id="plotly-ts-pet-{code}" class="plotly-chart"></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">Plotly: Balance Hídrico Anual</div>
+                            <div id="plotly-ts-wb-{code}" class="plotly-chart"></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">Plotly: Índice de Aridez</div>
+                            <div id="plotly-ts-ai-{code}" class="plotly-chart"></div>
+                        </div>
+                    </div>
 
                     <div class="dashboard-grid">
                         <div class="card">
-                            <div class="card-header">Temperatura Media</div>
+                            <div class="card-header">Temperatura Media (PNG)</div>
                             <div class="img-wrapper" onclick="openLightbox('{}')"><img src="{}" loading="lazy"></div>
                         </div>
                         <div class="card">
-                            <div class="card-header">Temperatura Máxima</div>
+                            <div class="card-header">Temperatura Máxima (PNG)</div>
                             <div class="img-wrapper" onclick="openLightbox('{}')"><img src="{}" loading="lazy"></div>
                         </div>
 
                         <div class="card">
-                            <div class="card-header">Precipitación Anual</div>
+                            <div class="card-header">Precipitación Anual (PNG)</div>
                             <div class="img-wrapper" onclick="openLightbox('{}')"><img src="{}" loading="lazy"></div>
                         </div>
                          <div class="card">
-                            <div class="card-header">Balance Hídrico</div>
+                            <div class="card-header">Balance Hídrico (PNG)</div>
                             <div class="img-wrapper" onclick="openLightbox('{}')"><img src="{}" loading="lazy"></div>
                         </div>
 
                         <div class="card">
-                            <div class="card-header">Índice de Aridez</div>
+                            <div class="card-header">Índice de Aridez (PNG)</div>
                             <div class="img-wrapper" onclick="openLightbox('{}')"><img src="{}" loading="lazy"></div>
                         </div>
                         <div class="card">
-                            <div class="card-header">Días Secos Consecutivos (CDD)</div>
+                            <div class="card-header">Días Secos Consecutivos (CDD) (PNG)</div>
                             <div class="img-wrapper" onclick="openLightbox('{}')"><img src="{}" loading="lazy"></div>
                         </div>
                     </div>
@@ -1290,6 +1526,10 @@ def generate_html_content(data_source=None, output_root=None, region_codes=None,
 </body>
 </html>
 """
+    html = html.replace(
+        "__PLOTLY_SERIES_DATA__",
+        json.dumps(interactive_timeseries_by_region, ensure_ascii=False),
+    )
 
     output_path = os.path.join(output_root, "index.html")
     with open(output_path, 'w', encoding='utf-8') as f:
