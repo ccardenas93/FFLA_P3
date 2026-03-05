@@ -49,6 +49,12 @@ def sanitize_folder_name(name, default="mi_area"):
     return safe or default
 
 
+def normalize_text_input(value):
+    normalized = unicodedata.normalize("NFKC", value or "")
+    cleaned = "".join(ch for ch in normalized if ch.isprintable())
+    return cleaned.strip()
+
+
 def write_uploaded_file(uploaded_file, temp_dir):
     filename = os.path.basename(uploaded_file.name)
     path = os.path.join(temp_dir, filename)
@@ -323,11 +329,35 @@ def infer_data_source(gdf):
 
 def resolve_output_root(custom_out):
     if custom_out and custom_out.strip():
-        output_root = os.path.abspath(os.path.expanduser(custom_out.strip()))
+        requested = normalize_text_input(custom_out)
+        output_root = os.path.abspath(os.path.expanduser(requested))
     else:
         output_root = settings.OUTPUTS_DIR
-    os.makedirs(output_root, exist_ok=True)
-    return output_root
+
+    try:
+        os.makedirs(output_root, exist_ok=True)
+        return output_root, None
+    except UnicodeEncodeError:
+        base_dir = os.path.dirname(output_root) or settings.OUTPUTS_DIR
+        safe_leaf = sanitize_folder_name(os.path.basename(output_root), default="resultados")
+        fallback_root = os.path.join(base_dir, safe_leaf)
+        os.makedirs(fallback_root, exist_ok=True)
+        return (
+            fallback_root,
+            "La ruta de salida contenía caracteres no compatibles y se reemplazó por una versión segura.",
+        )
+    except OSError:
+        # Some environments raise OSError instead of UnicodeEncodeError for non-ASCII paths.
+        if any(ord(ch) > 127 for ch in output_root):
+            base_dir = os.path.dirname(output_root) or settings.OUTPUTS_DIR
+            safe_leaf = sanitize_folder_name(os.path.basename(output_root), default="resultados")
+            fallback_root = os.path.join(base_dir, safe_leaf)
+            os.makedirs(fallback_root, exist_ok=True)
+            return (
+                fallback_root,
+                "La ruta de salida contenía caracteres no compatibles y se reemplazó por una versión segura.",
+            )
+        raise
 
 
 def _make_data_uri(path):
@@ -523,8 +553,9 @@ if mode == "Nueva Área de Interés (Subir SHP/GPKG)":
                             placeholder="Dejar vacío para usar default",
                         )
 
-                    region_folder = sanitize_folder_name(region_name_display, default="mi_area")
-                    if (region_name_display or "").strip() != region_folder:
+                    region_name_clean = normalize_text_input(region_name_display)
+                    region_folder = sanitize_folder_name(region_name_clean, default="mi_area")
+                    if region_name_clean != region_folder:
                         st.caption(f"Se usará la carpeta segura: `{region_folder}`")
 
                     st.write("---")
@@ -537,8 +568,10 @@ if mode == "Nueva Área de Interés (Subir SHP/GPKG)":
 
                         try:
                             cleanup_session_artifacts()
-                            region_label = (region_name_display or "").strip() or region_folder
-                            output_root = resolve_output_root(custom_out)
+                            region_label = region_name_clean or region_folder
+                            output_root, output_root_warning = resolve_output_root(custom_out)
+                            if output_root_warning:
+                                st.warning(f"{output_root_warning} Ruta final: `{output_root}`")
                             region_output_dir = os.path.join(output_root, region_folder)
                             os.makedirs(region_output_dir, exist_ok=True)
 

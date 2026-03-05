@@ -1,5 +1,6 @@
 import os
 import re
+import unicodedata
 
 
 BASE_DIR_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -29,7 +30,8 @@ REGIONS = {
 
 def add_dynamic_region(name, inputs_path, shapefile_path, output_path=None):
     """Dynamically adds a new region to the configuration."""
-    base_code = re.sub(r"[^A-Z0-9]+", "_", name.strip().upper()).strip("_") or "REGION"
+    normalized_name = unicodedata.normalize("NFKD", (name or "").strip()).encode("ascii", "ignore").decode("ascii")
+    base_code = re.sub(r"[^A-Z0-9]+", "_", normalized_name.upper()).strip("_") or "REGION"
     region_code = base_code
     suffix = 2
     while (
