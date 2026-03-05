@@ -425,10 +425,8 @@ if st.sidebar.button("Descargar/Actualizar Datos Base"):
         except Exception as exc:
             st.sidebar.error(f"Error en descarga: {exc}")
 
-mode = st.sidebar.radio(
-    "Modo de Operación",
-    ["Seleccionar Región Existente", "Nueva Área de Interés (Subir SHP/GPKG)"],
-)
+mode = "Nueva Área de Interés (Subir SHP/GPKG)"
+st.sidebar.caption(f"Modo de Operación: {mode}")
 
 if mode == "Nueva Área de Interés (Subir SHP/GPKG)":
     st.write("### 📤 Cargar Área de Estudio")
@@ -664,9 +662,3 @@ if mode == "Nueva Área de Interés (Subir SHP/GPKG)":
         st.write("#### 🖥️ Dashboard Interactivo")
         with open(dashboard_path, "r", encoding="utf-8") as f:
             components.html(f.read(), height=900, scrolling=True)
-
-elif mode == "Seleccionar Región Existente":
-    st.write("### 📂 Regiones Disponibles")
-    selected_region = st.selectbox("Región", list(settings.REGIONS.keys()))
-    if st.button("Ver Resultados / Procesar"):
-        st.write(f"Mostrando datos para: {settings.REGIONS[selected_region]['name']}")
