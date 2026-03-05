@@ -442,6 +442,151 @@ def cleanup_session_artifacts():
         st.session_state.pop(key, None)
 
 
+def render_learning_guide():
+    st.write("---")
+    st.markdown("## Guía Técnica de Uso y Aplicación")
+    st.caption(
+        "Guía práctica para nivel principiante en cambio climático y recursos hídricos. "
+        "Referencias oficiales consultadas en línea el 5 de marzo de 2026."
+    )
+
+    tab_intro, tab_cuando, tab_flujo, tab_interpretacion, tab_ideas, tab_ruta, tab_fuentes = st.tabs(
+        [
+            "Alcance",
+            "Cuándo usar",
+            "Flujo recomendado",
+            "Interpretación",
+            "Aplicaciones",
+            "Ruta de desarrollo",
+            "Fuentes oficiales",
+        ]
+    )
+
+    with tab_intro:
+        st.markdown(
+            """
+Esta aplicación permite transformar información climática en decisiones de gestión del agua.
+
+Aplicaciones principales:
+1. Comparar clima histórico vs escenarios futuros (SSP126, SSP370, SSP585).
+2. Evaluar cambios en precipitación, temperatura, PET y balance hídrico.
+3. Identificar señales de mayor estrés hídrico (por ejemplo, periodos secos más largos).
+4. Preparar insumos para planes de adaptación, riego, cuencas y reducción de riesgo.
+"""
+        )
+        st.info(
+            "Esta herramienta no reemplaza el pronóstico meteorológico diario. Está diseñada para planificación "
+            "de mediano y largo plazo (años a décadas)."
+        )
+
+    with tab_cuando:
+        st.markdown(
+            """
+| Situación | ¿Usar esta app? | Para qué decisión |
+|---|---|---|
+| Actualizar plan hídrico cantonal o de cuenca | Sí | Priorización de inversiones y obras |
+| Definir medidas de sequía agrícola | Sí | Riego eficiente, cosecha de agua, calendario de siembra |
+| Evaluar resiliencia de sistemas de agua potable | Sí | Protección de fuentes, almacenamiento, redundancia |
+| Diseñar alerta temprana multiamenaza | Sí (como base climática) | Umbrales y protocolo institucional |
+| Operación diaria de compuertas o bombeo | No (usar datos en tiempo real) | Operación táctica diaria |
+| Emitir alerta meteorológica de corto plazo | No (usar servicios meteorológicos oficiales) | Avisos de 24-72 h |
+"""
+        )
+
+    with tab_flujo:
+        st.markdown(
+            """
+Flujo recomendado para nivel inicial:
+1. Delimitar con precisión el AOI (subcuenca, parroquia, sistema de agua, etc.).
+2. Ejecutar el análisis y revisar primero la línea base histórica.
+3. Compara escenarios futuros por ventanas de tiempo (corto, medio, largo plazo).
+4. Priorizar 3 variables clave: Precipitación (P), PET y Balance Hídrico (P - PET).
+5. Identificar meses/estaciones más críticos (déficit hídrico o exceso de lluvia).
+6. Definir riesgos por sector: agua potable, riego, ecosistemas e infraestructura.
+7. Asignar medidas de adaptación con responsable, costo y plazo.
+8. Repetir el análisis en cada ciclo de planificación o ante actualización de datos.
+"""
+        )
+
+    with tab_interpretacion:
+        st.markdown(
+            """
+Guía rápida de interpretación:
+
+| Resultado | Señal de alerta | Qué hacer primero |
+|---|---|---|
+| Precipitación (P) | Disminuye sostenidamente | Revisar oferta hídrica y almacenamiento |
+| PET | Aumenta | Mejorar eficiencia de riego y manejo de demanda |
+| Balance hídrico (P-PET) | Más negativo | Activar plan de sequía y priorizar usos esenciales |
+| CDD (días secos consecutivos) | Aumenta | Fortalecer preparación ante sequías estacionales |
+| Eventos de lluvia intensa | Mayor magnitud/frecuencia | Revisar drenaje, protección ribereña y alerta temprana |
+"""
+        )
+        st.warning(
+            "Se recomienda evitar decisiones con una sola figura. Confirmar siempre con varias salidas "
+            "(series temporales, mapas y ventanas de tiempo)."
+        )
+        st.caption(
+            "Referencia útil para aridez: FAO/UNEP define drylands con índice de aridez "
+            "(P/PET) <= 0.65."
+        )
+
+    with tab_ideas:
+        st.markdown(
+            """
+Ideas de uso por tipo de institución:
+1. Municipios y GAD: actualizar PDOT y cartera de obras con criterio de riesgo climático.
+2. Juntas de agua: planificar protección de fuentes, tanques y racionamiento preventivo.
+3. Riego y agricultura: ajustar calendario de riego, cultivos y eficiencia parcelaria.
+4. Gestión de riesgos: convertir señales climáticas en umbrales de acción (sequía/inundación).
+5. Conservación de cuencas: priorizar restauración en zonas con mayor estrés hídrico futuro.
+6. Educación técnica: usar los reportes para capacitación práctica de equipos locales.
+"""
+        )
+
+    with tab_ruta:
+        st.markdown(
+            """
+Ruta sugerida (90 días) para consolidar capacidades técnicas:
+
+1. Días 1-30:
+Revisión de conceptos base: escenarios climáticos, PET, balance hídrico e incertidumbre.
+
+2. Días 31-60:
+Ejecución de 2-3 casos territoriales y construcción de una matriz riesgo-medida.
+
+3. Días 61-90:
+Integración de resultados en un plan institucional (indicador, meta, presupuesto y responsable).
+
+Objetivo técnico:
+Tomar decisiones robustas bajo incertidumbre, evitando depender de una única predicción.
+"""
+        )
+
+    with tab_fuentes:
+        st.markdown(
+            """
+Fuentes oficiales sugeridas para profundizar:
+
+- [IPCC AR6 WGII Chapter 4: Water (2022)](https://www.ipcc.ch/report/ar6/wg2/chapter/chapter-4/)
+- [IPCC AR6 Synthesis Report (2023)](https://www.ipcc.ch/synthesis-report/)
+- [UN-Water: IWRM Progress Update (2024)](https://www.unwater.org/publications/progress-implementation-integrated-water-resources-management-2024-update)
+- [UNESCO CRIDA: Climate Risk Informed Decision Analysis](https://www.unesco.org/en/crida)
+- [WMO: Early Warnings for All (meta 2027)](https://wmo.int/activities/early-warnings-all)
+- [WMO/GWP IDMP: SPI (índice recomendado para sequía meteorológica)](https://www.droughtmanagement.info/standardized-precipitation-index-spi/)
+- [WMO/GWP IDMP: Handbook of Drought Indicators and Indices](https://www.droughtmanagement.info/find/guidelines-tools/handbook-drought-indicators-and-indices/)
+- [WMO/GWP IDMP: National Drought Management Policy Guidelines](https://www.droughtmanagement.info/find/guidelines-tools/guidelines/)
+- [FAO: Crop Evapotranspiration (FAO56)](https://www.fao.org/land-water/land/land-governance/land-resources-planning-toolbox/category/details/en/c/1026557/)
+- [FAO: ETo Calculator y referencia FAO56](https://www.fao.org/land-water/databases-and-software/eto-calculator/ar/)
+- [UNDRR: Sendai Framework (2015-2030)](https://www.undrr.org/implementing-sendai-framework/what-sendai-framework)
+"""
+        )
+        st.caption(
+            "Sugerencia práctica: prioriza marcos oficiales (IPCC, WMO, FAO, UNESCO, UN-Water, UNDRR) "
+            "y complementa con datos locales."
+        )
+
+
 st.set_page_config(page_title="Climate Analysis App", layout="wide")
 st.title("🌍 Análisis Climático FFLA")
 
@@ -454,6 +599,16 @@ if st.sidebar.button("Descargar/Actualizar Datos Base"):
             st.sidebar.success("✅ Datos descargados/verificados.")
         except Exception as exc:
             st.sidebar.error(f"Error en descarga: {exc}")
+
+show_guide = st.sidebar.toggle(
+    "Mostrar Guía Técnica",
+    value=False,
+    help="Activa esta opción para abrir la guía de uso y aplicaciones.",
+)
+
+if show_guide:
+    render_learning_guide()
+    st.stop()
 
 mode = "Nueva Área de Interés (Subir SHP/GPKG)"
 st.sidebar.caption(f"Modo de Operación: {mode}")
